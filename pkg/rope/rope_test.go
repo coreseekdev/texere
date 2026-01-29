@@ -905,14 +905,3 @@ func BenchmarkRope_Iterator(b *testing.B) {
 	}
 }
 
-func BenchmarkBuilder_Append(b *testing.B) {
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		bldr := NewBuilder()
-		for j := 0; j < 100; j++ {
-			bldr.Append("a")
-		}
-		_ = bldr.Build()
-	}
-}

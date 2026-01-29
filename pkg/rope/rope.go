@@ -158,11 +158,23 @@ func (r *Rope) Size() int {
 }
 
 // String returns the complete content of the rope as a string.
+// Optimized implementation using strings.Builder for minimal allocations.
 func (r *Rope) String() string {
 	if r == nil || r.length == 0 {
 		return ""
 	}
-	return r.root.Slice(0, r.length)
+
+	// Use strings.Builder with pre-allocated capacity
+	var b strings.Builder
+	b.Grow(r.size)
+
+	// Iterate chunks directly for efficiency
+	it := r.Chunks()
+	for it.Next() {
+		b.WriteString(it.Current())
+	}
+
+	return b.String()
 }
 
 // Bytes returns the complete content of the rope as a byte slice.

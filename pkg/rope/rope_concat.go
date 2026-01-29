@@ -1,5 +1,9 @@
 package rope
 
+import (
+	"unicode/utf8"
+)
+
 // ========== Rope Concatenation ==========
 
 // AppendRope appends another rope to the end of this rope.
@@ -122,12 +126,32 @@ func (r *Rope) Join(ropes []*Rope, separator string) *Rope {
 // ========== String Append/Prepend ==========
 
 // AppendStr appends a string to the end of the rope.
+// Optimized version that directly creates nodes instead of using Insert().
 // Returns a new Rope, leaving the original unchanged.
 func (r *Rope) AppendStr(text string) *Rope {
 	if r == nil {
 		return New(text)
 	}
-	return r.Insert(r.Length(), text)
+	if text == "" {
+		return r
+	}
+	if r.length == 0 {
+		return New(text)
+	}
+
+	// Create rope from text and append it directly
+	textRope := New(text)
+
+	return &Rope{
+		root: &InternalNode{
+			left:   r.root,
+			right:  textRope.root,
+			length: r.Length(),
+			size:   r.Size(),
+		},
+		length: r.length + utf8.RuneCountInString(text),
+		size:   r.size + len(text),
+	}
 }
 
 // PrependStr prepends a string to the beginning of the rope.
