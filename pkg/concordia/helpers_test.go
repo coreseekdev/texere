@@ -1,0 +1,73 @@
+package concordia
+
+import (
+	"math/rand"
+	"strings"
+	"time"
+)
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
+// randomString generates a random string for testing.
+// Corresponds to ot.js test/helpers.js: randomString
+func randomString(n int) string {
+	var b strings.Builder
+	for i := 0; i < n; i++ {
+		if rand.Float64() < 0.15 {
+			b.WriteRune('\n')
+		} else {
+			b.WriteRune('a' + rune(rand.Intn(26)))
+		}
+	}
+	return b.String()
+}
+
+// randomOperation generates a random operation for testing.
+// Corresponds to ot.js test/helpers.js: randomOperation
+func randomOperation(str string) *Operation {
+	builder := NewBuilder()
+	pos := 0
+
+	for pos < len(str) {
+		left := len(str) - pos
+		if left == 0 {
+			break
+		}
+
+		// Random length between 1 and min(left-1, 20)
+		maxLen := min(left-1, 20)
+		if maxLen < 1 {
+			maxLen = 1
+		}
+		l := 1 + rand.Intn(maxLen)
+
+		r := rand.Float64()
+
+		switch {
+		case r < 0.2:
+			// Insert
+			s := randomString(l)
+			builder.Insert(s)
+			pos += len(s)
+		case r < 0.4:
+			// Delete
+			builder.Delete(l)
+			pos += l
+		default:
+			// Retain
+			builder.Retain(l)
+			pos += l
+		}
+	}
+
+	// 30% chance to insert at the end
+	if rand.Float64() < 0.3 {
+		builder.Insert(randomString(1 + rand.Intn(10)))
+	}
+
+	return builder.Build()
+}
+
+// min returns the minimum of two integers.
