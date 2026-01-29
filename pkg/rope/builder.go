@@ -95,10 +95,12 @@ func (b *RopeBuilder) Replace(start, end int, text string) *RopeBuilder {
 
 // Build constructs the final Rope from all pending operations.
 // After calling Build, the builder can be reused for further operations.
+// The built rope is retained, so subsequent appends will add to it.
 func (b *RopeBuilder) Build() *Rope {
 	b.flush()
-	result := b.rope
-	b.rope = Empty()
+	// Return a copy of the rope, but keep the original in the builder
+	// This allows reuse: Build() -> Append() -> Build() adds incrementally
+	result := b.rope.Clone()
 	b.pending = b.pending[:0]
 	return result
 }

@@ -254,7 +254,8 @@ func (r *Rope) LineAtChar(pos int) int {
 	}
 
 	lineNum := 0
-	for i := 0; i < pos; i++ {
+	// Fixed: include the position itself in the check
+	for i := 0; i <= pos; i++ {
 		if r.CharAt(i) == '\n' {
 			lineNum++
 		}

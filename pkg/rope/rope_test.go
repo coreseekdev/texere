@@ -346,7 +346,7 @@ func TestLargeText_Insert(t *testing.T) {
 	// Insert in the middle
 	r2 := r.Insert(512*1024, "INSERTED")
 
-	assert.Equal(t, 1024*1024+7, r2.Length())
+	assert.Equal(t, 1024*1024+8, r2.Length()) // "INSERTED" has 8 characters
 	assert.Contains(t, r2.String(), "INSERTED")
 }
 
@@ -517,7 +517,7 @@ func TestBuilder_Insert(t *testing.T) {
 func TestBuilder_Delete(t *testing.T) {
 	b := NewBuilder()
 	b.Append("Hello Beautiful World")
-	b.Delete(5, 16)
+	b.Delete(6, 16) // Delete " Beautiful" (keep the first space)
 
 	r := b.Build()
 	assert.Equal(t, "Hello World", r.String())
