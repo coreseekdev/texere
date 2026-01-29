@@ -24,8 +24,8 @@ func NewBytePosCache(text string) *BytePosCache {
 // GetBytePos returns the byte position for the given character position.
 // Uses cache with exponential backoff for efficiency.
 func (c *BytePosCache) GetBytePos(charPos int) int {
-	// Fast path: if we have this exact position cached
-	if charPos < len(c.charToByte) && c.charToByte[charPos] != 0 {
+	// Fast path: if we have this exact position cached (and cache is long enough)
+	if charPos >= 0 && charPos < len(c.charToByte) && c.charToByte[charPos] != 0 {
 		return c.charToByte[charPos]
 	}
 
@@ -35,7 +35,7 @@ func (c *BytePosCache) GetBytePos(charPos int) int {
 	// Start from cached position and iterate forward
 	startChar := 0
 	startByte := 0
-	if cachePos >= 0 {
+	if cachePos >= 0 && cachePos < len(c.charToByte) {
 		startChar = cachePos
 		startByte = c.charToByte[cachePos]
 	}
@@ -47,8 +47,8 @@ func (c *BytePosCache) GetBytePos(charPos int) int {
 		bytePos += size
 
 		// Cache every 8th position (exponential backoff)
-		if (i+1)%8 == 0 && i+1 < cap(c.charToByte) {
-			c.ensureCapacity(i + 1)
+		if (i+1)%8 == 0 && i+2 <= cap(c.charToByte) {
+			c.ensureCapacity(i + 2) // Need length i+2 to access index i+1
 			c.charToByte[i+1] = bytePos
 		}
 	}
