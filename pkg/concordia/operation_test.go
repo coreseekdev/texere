@@ -5,6 +5,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/texere-ot/pkg/document"
 )
 
 // TestOperation_Constructor tests the operation constructor.
@@ -49,10 +51,10 @@ func TestOperation_BuilderChaining(t *testing.T) {
 		Retain(0).
 		Insert("lorem").
 		Insert("").
-		Delete("abc").
+		Delete(3).
 		Delete(3).
 		Delete(0).
-		Delete("").
+		Delete(0).
 		Build()
 
 	assert.Equal(t, 3, len(op.ops))
@@ -104,7 +106,7 @@ func TestOperation_EmptyOps(t *testing.T) {
 		Retain(0).
 		Insert("").
 		Delete(0).
-		Delete("").
+		Delete(0).
 		Build()
 
 	assert.Equal(t, 0, len(op.ops))
@@ -167,7 +169,7 @@ func TestOperation_IsNoop(t *testing.T) {
 // TestOperation_ToString tests string representation.
 // Corresponds to ot.js test/lib/test-text-operation.js: exports.testToString
 func TestOperation_ToString(t *testing.T) {
-	op := NewBuilder().Retain(2).Insert("lorem").Delete("ipsum").Retain(5).Build()
+	op := NewBuilder().Retain(2).Insert("lorem").Delete(5).Retain(5).Build()
 	expected := "retain 2, insert 'lorem', delete 5, retain 5"
 	assert.Equal(t, expected, op.String())
 }
@@ -303,7 +305,7 @@ func TestOperation_Transform_Random(t *testing.T) {
 // TestDocument_StringDocument tests StringDocument implementation.
 func TestDocument_StringDocument(t *testing.T) {
 	content := "Hello World"
-	doc := NewStringDocument(content)
+	doc := document.NewStringDocument(content)
 
 	assert.Equal(t, len(content), doc.Length())
 	assert.Equal(t, content, doc.String())
