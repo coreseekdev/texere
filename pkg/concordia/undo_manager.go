@@ -107,7 +107,8 @@ func (um *UndoManager) Add(operation *Operation, compose bool) {
 		if !um.dontCompose && compose && len(um.undoStack) > 0 {
 			// Try to compose with the last operation
 			lastOp := um.undoStack[len(um.undoStack)-1]
-			if operation.ShouldBeComposedWith(lastOp) {
+			// Fix: check lastOp.ShouldBeComposedWith(operation) not the reverse
+			if lastOp.ShouldBeComposedWith(operation) {
 				composedOp, err := Compose(lastOp, operation)
 				if err == nil {
 					um.undoStack[len(um.undoStack)-1] = composedOp
@@ -206,9 +207,8 @@ func transformStack(stack []*Operation, operation *Operation) ([]*Operation, err
 
 // PerformUndo executes an undo operation.
 //
-// The callback function receives the operation to undo. The caller should
-// apply this operation to the document and then add the inverse back to
-// the UndoManager.
+// The callback function receives the operation to undo. The UndoManager
+// automatically manages the redo stack.
 //
 // Parameters:
 //   - fn: callback function that receives the operation to undo
@@ -221,16 +221,12 @@ func transformStack(stack []*Operation, operation *Operation) ([]*Operation, err
 //	err := um.PerformUndo(func(op *Operation) {
 //	    // Apply the inverse operation
 //	    doc, _ = op.Apply(doc)
-//
-//	    // Add the inverse of the inverse (i.e., the redo operation)
-//	    redoOp, _ := op.Invert(doc)
-//	    um.Add(redoOp, false)
 //	})
 func (um *UndoManager) PerformUndo(fn func(op *Operation)) error {
 	um.mu.Lock()
-	defer um.mu.Unlock()
 
 	if len(um.undoStack) == 0 {
+		um.mu.Unlock()
 		return ErrCannotUndo
 	}
 
@@ -240,10 +236,17 @@ func (um *UndoManager) PerformUndo(fn func(op *Operation)) error {
 	op := um.undoStack[len(um.undoStack)-1]
 	um.undoStack = um.undoStack[:len(um.undoStack)-1]
 
-	// Call the callback
+	// Release lock before calling callback to allow um.Add() inside callback
+	um.mu.Unlock()
+
+	// Call the callback (may call um.Add())
 	fn(op)
 
+	// Re-acquire lock to reset state
+	um.mu.Lock()
 	um.state = StateNormal
+	um.mu.Unlock()
+
 	return nil
 }
 
@@ -271,9 +274,9 @@ func (um *UndoManager) PerformUndo(fn func(op *Operation)) error {
 //	})
 func (um *UndoManager) PerformRedo(fn func(op *Operation)) error {
 	um.mu.Lock()
-	defer um.mu.Unlock()
 
 	if len(um.redoStack) == 0 {
+		um.mu.Unlock()
 		return ErrCannotRedo
 	}
 
@@ -283,10 +286,17 @@ func (um *UndoManager) PerformRedo(fn func(op *Operation)) error {
 	op := um.redoStack[len(um.redoStack)-1]
 	um.redoStack = um.redoStack[:len(um.redoStack)-1]
 
-	// Call the callback
+	// Release lock before calling callback to allow um.Add() inside callback
+	um.mu.Unlock()
+
+	// Call the callback (may call um.Add())
 	fn(op)
 
+	// Re-acquire lock to reset state
+	um.mu.Lock()
 	um.state = StateNormal
+	um.mu.Unlock()
+
 	return nil
 }
 

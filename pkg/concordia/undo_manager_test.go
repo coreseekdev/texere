@@ -30,6 +30,9 @@ func TestUndoManager_Basic(t *testing.T) {
 	var undoneOp *Operation
 	err := um.PerformUndo(func(op *Operation) {
 		undoneOp = op
+		// Add the inverse operation to redo stack
+		// In this case, op is Insert("Hello"), so we add it directly
+		um.Add(op, false)
 	})
 	require.NoError(t, err)
 	assert.Equal(t, op, undoneOp)
@@ -44,6 +47,8 @@ func TestUndoManager_Basic(t *testing.T) {
 	var redoneOp *Operation
 	err = um.PerformRedo(func(op *Operation) {
 		redoneOp = op
+		// Add back to undo stack
+		um.Add(op, false)
 	})
 	require.NoError(t, err)
 	assert.Equal(t, op, redoneOp)
@@ -86,11 +91,13 @@ func TestUndoManager_Transform(t *testing.T) {
 	um := NewUndoManager(50)
 
 	// Add an operation to the undo stack
+	// This represents: apply to a doc of length 5, retain 5, then insert "Hello"
 	op1 := NewBuilder().Retain(5).Insert("Hello").Build()
 	um.Add(op1, true)
 
-	// Simulate a remote operation
-	remoteOp := NewBuilder().Retain(2).Insert("Hi").Build()
+	// Simulate a remote operation that also operates on a doc of length 5
+	// For example, retain 2 then insert "Hi" (position 2 insertion)
+	remoteOp := NewBuilder().Retain(2).Insert("Hi").Retain(3).Build()
 
 	// Transform the undo stack
 	err := um.Transform(remoteOp)
@@ -182,6 +189,7 @@ func TestUndoManager_State(t *testing.T) {
 	err := um.PerformUndo(func(op *Operation) {
 		assert.True(t, um.IsUndoing())
 		assert.False(t, um.IsRedoing())
+		um.Add(op, false) // Add to redo stack
 	})
 	require.NoError(t, err)
 
@@ -192,6 +200,7 @@ func TestUndoManager_State(t *testing.T) {
 	err = um.PerformRedo(func(op *Operation) {
 		assert.True(t, um.IsRedoing())
 		assert.False(t, um.IsUndoing())
+		um.Add(op, false) // Add back to undo stack
 	})
 	require.NoError(t, err)
 
@@ -239,7 +248,9 @@ func TestUndoManager_RedoStackCleared(t *testing.T) {
 	op1 := NewBuilder().Insert("Hello").Build()
 	um.Add(op1, true)
 
-	err := um.PerformUndo(func(op *Operation) {})
+	err := um.PerformUndo(func(op *Operation) {
+		um.Add(op, false) // Add to redo stack
+	})
 	require.NoError(t, err)
 
 	assert.True(t, um.CanRedo())
