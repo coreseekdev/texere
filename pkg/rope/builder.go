@@ -1,0 +1,238 @@
+package rope
+
+import (
+	"unicode/utf8"
+)
+
+// RopeBuilder provides an efficient way to build a Rope through multiple operations.
+//
+// The builder optimizes batch operations by:
+// - Merging consecutive small insertions
+// - Deferring tree construction
+// - Reducing rebalancing operations
+//
+// Example usage:
+//
+//	builder := rope.NewBuilder()
+//	builder.Append("Hello")
+//	builder.Append(" ")
+//	builder.Append("World")
+//	r := builder.Build()
+type RopeBuilder struct {
+	rope    *Rope
+	pending []pendingInsert
+}
+
+// pendingInsert represents an insertion operation waiting to be applied.
+type pendingInsert struct {
+	position int // Character position (-1 means append to end)
+	text     string
+}
+
+// NewBuilder creates a new RopeBuilder starting with an empty rope.
+func NewBuilder() *RopeBuilder {
+	return &RopeBuilder{
+		rope:    Empty(),
+		pending: make([]pendingInsert, 0, 16),
+	}
+}
+
+// NewBuilderFromRope creates a new RopeBuilder starting with an existing rope.
+func NewBuilderFromRope(r *Rope) *RopeBuilder {
+	return &RopeBuilder{
+		rope:    r,
+		pending: make([]pendingInsert, 0, 16),
+	}
+}
+
+// Append adds text to the end of the rope.
+// This is optimized by batching with other append operations.
+func (b *RopeBuilder) Append(text string) *RopeBuilder {
+	if text == "" {
+		return b
+	}
+
+	// If the last operation was also an append, merge them
+	if len(b.pending) > 0 && b.pending[len(b.pending)-1].position == -1 {
+		b.pending[len(b.pending)-1].text += text
+		return b
+	}
+
+	b.pending = append(b.pending, pendingInsert{
+		position: -1,
+		text:     text,
+	})
+	return b
+}
+
+// Insert inserts text at the specified character position.
+func (b *RopeBuilder) Insert(pos int, text string) *RopeBuilder {
+	if text == "" {
+		return b
+	}
+
+	b.pending = append(b.pending, pendingInsert{
+		position: pos,
+		text:     text,
+	})
+	return b
+}
+
+// Delete removes characters from start to end (exclusive).
+// This operation is applied immediately (not batched).
+func (b *RopeBuilder) Delete(start, end int) *RopeBuilder {
+	b.flush()
+	b.rope = b.rope.Delete(start, end)
+	return b
+}
+
+// Replace replaces characters from start to end (exclusive) with the given text.
+func (b *RopeBuilder) Replace(start, end int, text string) *RopeBuilder {
+	b.flush()
+	b.rope = b.rope.Replace(start, end, text)
+	return b
+}
+
+// Build constructs the final Rope from all pending operations.
+// After calling Build, the builder can be reused for further operations.
+func (b *RopeBuilder) Build() *Rope {
+	b.flush()
+	result := b.rope
+	b.rope = Empty()
+	b.pending = b.pending[:0]
+	return result
+}
+
+// flush applies all pending insertions to the rope.
+func (b *RopeBuilder) flush() {
+	if len(b.pending) == 0 {
+		return
+	}
+
+	// Sort pending insertions by position
+	// For now, we'll just apply them in order
+	// TODO: Optimize by sorting and merging adjacent operations
+
+	for _, op := range b.pending {
+		if op.position == -1 {
+			// Append to end
+			b.rope = b.rope.Insert(b.rope.Length(), op.text)
+		} else {
+			b.rope = b.rope.Insert(op.position, op.text)
+		}
+	}
+
+	b.pending = b.pending[:0]
+}
+
+// Length returns the current length of the rope being built.
+// This includes any pending operations.
+func (b *RopeBuilder) Length() int {
+	length := b.rope.Length()
+	for _, op := range b.pending {
+		length += utf8.RuneCountInString(op.text)
+	}
+	return length
+}
+
+// Size returns the current size in bytes of the rope being built.
+func (b *RopeBuilder) Size() int {
+	size := b.rope.Size()
+	for _, op := range b.pending {
+		size += len(op.text)
+	}
+	return size
+}
+
+// Reset clears the builder and starts fresh with an empty rope.
+func (b *RopeBuilder) Reset() *RopeBuilder {
+	b.rope = Empty()
+	b.pending = b.pending[:0]
+	return b
+}
+
+// ResetFromRope clears the builder and starts with the given rope.
+func (b *RopeBuilder) ResetFromRope(r *Rope) *RopeBuilder {
+	b.rope = r
+	b.pending = b.pending[:0]
+	return b
+}
+
+// ========== Optimization Helpers ==========
+
+// InsertString is a convenience method to insert a string and return the builder.
+// Useful for method chaining.
+func (b *RopeBuilder) InsertString(pos int, text string) *RopeBuilder {
+	return b.Insert(pos, text)
+}
+
+// InsertRune inserts a single rune at the specified position.
+func (b *RopeBuilder) InsertRune(pos int, r rune) *RopeBuilder {
+	return b.Insert(pos, string(r))
+}
+
+// InsertByte inserts a single byte at the specified position.
+// Note: This assumes the byte is a valid UTF-8 continuation or ASCII.
+func (b *RopeBuilder) InsertByte(pos int, byteVal byte) *RopeBuilder {
+	return b.Insert(pos, string(rune(byteVal)))
+}
+
+// AppendRune appends a single rune to the end.
+func (b *RopeBuilder) AppendRune(r rune) *RopeBuilder {
+	return b.Append(string(r))
+}
+
+// AppendByte appends a single byte to the end.
+func (b *RopeBuilder) AppendByte(byteVal byte) *RopeBuilder {
+	return b.Append(string(rune(byteVal)))
+}
+
+// AppendLine appends a line with a newline character.
+func (b *RopeBuilder) AppendLine(line string) *RopeBuilder {
+	return b.Append(line + "\n")
+}
+
+// Write implements io.Writer interface for convenience.
+func (b *RopeBuilder) Write(p []byte) (n int, err error) {
+	b.Append(string(p))
+	return len(p), nil
+}
+
+// WriteString implements io.StringWriter interface for convenience.
+func (b *RopeBuilder) WriteString(s string) (n int, err error) {
+	b.Append(s)
+	return len(s), nil
+}
+
+// ========== Builder Pool for Reuse ==========
+
+// BuilderPool maintains a pool of builders for reuse (reduces allocations).
+type BuilderPool struct {
+	builders chan *RopeBuilder
+}
+
+// NewBuilderPool creates a new builder pool with the given size.
+func NewBuilderPool(size int) *BuilderPool {
+	return &BuilderPool{
+		builders: make(chan *RopeBuilder, size),
+	}
+}
+
+// Get returns a builder from the pool, or creates a new one if pool is empty.
+func (p *BuilderPool) Get() *RopeBuilder {
+	select {
+	case builder := <-p.builders:
+		return builder.Reset()
+	default:
+		return NewBuilder()
+	}
+}
+
+// Put returns a builder to the pool for reuse.
+func (p *BuilderPool) Put(builder *RopeBuilder) {
+	select {
+	case p.builders <- builder.Reset():
+	default:
+		// Pool is full, discard the builder
+	}
+}
