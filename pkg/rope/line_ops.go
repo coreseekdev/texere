@@ -253,10 +253,11 @@ func (r *Rope) LineAtChar(pos int) int {
 		return 0
 	}
 
+	// Use iterator for efficient traversal (avoids expensive CharAt calls)
 	lineNum := 0
-	// Fixed: include the position itself in the check
-	for i := 0; i <= pos; i++ {
-		if r.CharAt(i) == '\n' {
+	it := r.NewIterator()
+	for i := 0; i <= pos && it.Next(); i++ {
+		if it.Current() == '\n' {
 			lineNum++
 		}
 	}
