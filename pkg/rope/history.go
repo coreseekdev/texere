@@ -632,3 +632,220 @@ type HistoryStats struct {
 	CanUndo        bool
 	CanRedo        bool
 }
+
+// ========== Time-based Navigation (Immutable State) ==========
+
+// EarlierByDuration moves back in history by the specified time duration.
+// Returns a new history at the state approximately 'duration' ago.
+// This does not modify the current history; it returns a new History object.
+func (h *History) EarlierByDuration(duration time.Duration) *History {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	if h.current < 0 || len(h.revisions) == 0 {
+		return &History{
+			revisions:   h.revisions,
+			current:     h.current,
+			maxSize:     h.maxSize,
+		}
+	}
+
+	// Get current revision's timestamp and subtract duration
+	currentRev := h.revisions[h.current]
+	targetTime := currentRev.timestamp.Add(-duration)
+	targetTimeTrunc := targetTime.Truncate(time.Millisecond)
+
+	// Walk back through history to find revision closest to target time
+	for i := h.current; i >= 0; i-- {
+		rev := h.revisions[i]
+		revTime := rev.timestamp.Truncate(time.Millisecond)
+
+		if revTime.Before(targetTimeTrunc) || revTime.Equal(targetTimeTrunc) {
+			// Found state at or before target time
+			return &History{
+				revisions:   h.revisions,
+				current:     i,
+				maxSize:     h.maxSize,
+			}
+		}
+	}
+
+	// If not found, return root state (current = -1)
+	return &History{
+		revisions: h.revisions,
+		current:   -1,
+		maxSize:   h.maxSize,
+	}
+}
+
+// LaterByDuration moves forward in history by the specified time duration.
+// Returns a new history at the state approximately 'duration' in the future.
+// This does not modify the current history; it returns a new History object.
+func (h *History) LaterByDuration(duration time.Duration) *History {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	if len(h.revisions) == 0 {
+		return &History{
+			revisions:   h.revisions,
+			current:     h.current,
+			maxSize:     h.maxSize,
+		}
+	}
+
+	// Determine the starting time based on current position
+	var startTime time.Time
+	startIdx := 0
+
+	if h.current < 0 {
+		// At root, start from the first revision's time
+		startTime = h.revisions[0].timestamp
+		startIdx = -1
+	} else {
+		startTime = h.revisions[h.current].timestamp
+		startIdx = h.current
+	}
+
+	targetTime := startTime.Add(duration)
+	targetTimeTrunc := targetTime.Truncate(time.Millisecond)
+
+	// Walk forward through history to find revision closest to target time
+	bestIdx := startIdx
+	for i := startIdx + 1; i < len(h.revisions); i++ {
+		rev := h.revisions[i]
+		revTime := rev.timestamp.Truncate(time.Millisecond)
+
+		if revTime.After(targetTimeTrunc) || revTime.Equal(targetTimeTrunc) {
+			// Found state at or after target time
+			// Return the state just before this one (to not overshoot)
+			bestIdx = i - 1
+			break
+		}
+		bestIdx = i
+	}
+
+	// Ensure we don't go past the tip and bestIdx is at least 0
+	if bestIdx >= len(h.revisions) {
+		bestIdx = len(h.revisions) - 1
+	}
+	if bestIdx < 0 && len(h.revisions) > 0 {
+		bestIdx = 0
+	}
+
+	return &History{
+		revisions: h.revisions,
+		current:   bestIdx,
+		maxSize:   h.maxSize,
+	}
+}
+
+// TimeAt returns the timestamp of the current state.
+func (h *History) TimeAt() time.Time {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	if h.current < 0 || h.current >= len(h.revisions) {
+		return time.Time{}
+	}
+
+	return h.revisions[h.current].timestamp
+}
+
+// DurationFromRoot returns the time elapsed since the root state.
+func (h *History) DurationFromRoot() time.Duration {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	if h.current < 0 || len(h.revisions) == 0 {
+		return 0
+	}
+
+	rootTime := h.revisions[0].timestamp
+	currentTime := h.revisions[h.current].timestamp
+	return currentTime.Sub(rootTime)
+}
+
+// DurationToTip returns the time from the current state to the tip state.
+func (h *History) DurationToTip() time.Duration {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	if len(h.revisions) == 0 {
+		return 0
+	}
+
+	if h.current < 0 {
+		// At root, return duration from first revision to tip
+		if len(h.revisions) >= 2 {
+			firstTime := h.revisions[0].timestamp
+			tipTime := h.revisions[len(h.revisions)-1].timestamp
+			return tipTime.Sub(firstTime)
+		}
+		return 0
+	}
+
+	currentTime := h.revisions[h.current].timestamp
+	tipTime := h.revisions[len(h.revisions)-1].timestamp
+	return tipTime.Sub(currentTime)
+}
+
+// IsEmpty returns true if the history is empty (no revisions).
+func (h *History) IsEmpty() bool {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	return len(h.revisions) == 0
+}
+
+// ToRoot returns a new history at the root state (before all revisions).
+func (h *History) ToRoot() *History {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	return &History{
+		revisions: h.revisions,
+		current:   -1,
+		maxSize:   h.maxSize,
+	}
+}
+
+// ToTip returns a new history at the tip state (after all revisions).
+func (h *History) ToTip() *History {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	tipIdx := len(h.revisions) - 1
+	if tipIdx < 0 {
+		tipIdx = -1
+	}
+
+	return &History{
+		revisions: h.revisions,
+		current:   tipIdx,
+		maxSize:   h.maxSize,
+	}
+}
+
+// Clone creates a deep copy of the history.
+func (h *History) Clone() *History {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	// Deep copy revisions
+	revisionsCopy := make([]*Revision, len(h.revisions))
+	for i, rev := range h.revisions {
+		revisionsCopy[i] = &Revision{
+			parent:      rev.parent,
+			lastChild:   rev.lastChild,
+			transaction: rev.transaction,
+			inversion:   rev.inversion,
+			timestamp:   rev.timestamp,
+		}
+	}
+
+	return &History{
+		revisions: revisionsCopy,
+		current:   h.current,
+		maxSize:   h.maxSize,
+	}
+}
