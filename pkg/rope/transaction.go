@@ -70,11 +70,44 @@ func (cs *ChangeSet) IsEmpty() bool {
 	return len(cs.operations) == 0
 }
 
+// fuse merges consecutive operations of the same type for optimization.
+// This reduces the number of operations and improves performance.
+// For example: Insert("a") + Insert("b") → Insert("ab")
+func (cs *ChangeSet) fuse() {
+	if len(cs.operations) <= 1 {
+		return
+	}
+
+	fused := make([]Operation, 0, len(cs.operations))
+
+	for _, op := range cs.operations {
+		if len(fused) > 0 && fused[len(fused)-1].OpType == op.OpType {
+			// Merge with previous operation of the same type
+			prev := &fused[len(fused)-1]
+			switch op.OpType {
+			case OpRetain:
+				prev.Length += op.Length
+			case OpDelete:
+				prev.Length += op.Length
+			case OpInsert:
+				prev.Text += op.Text
+			}
+		} else {
+			fused = append(fused, op)
+		}
+	}
+
+	cs.operations = fused
+}
+
 // Apply applies the changeset to a rope and returns the modified rope.
 func (cs *ChangeSet) Apply(r *Rope) *Rope {
 	if r == nil || cs.IsEmpty() {
 		return r
 	}
+
+	// Fuse operations for optimization (reduces number of rope mutations)
+	cs.fuse()
 
 	result := r
 	pos := 0
@@ -123,6 +156,9 @@ func (cs *ChangeSet) Invert(original *Rope) *ChangeSet {
 			inverted.Delete(len([]rune(op.Text)))
 		}
 	}
+
+	// Fuse operations in the inverted changeset for optimization
+	inverted.fuse()
 
 	return inverted
 }

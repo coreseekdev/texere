@@ -554,3 +554,119 @@ func TestHistory_AtRootAtTip(t *testing.T) {
 		t.Error("Expected AtTip() to be false after undo")
 	}
 }
+
+// TestChangeSet_Fusion tests operation fusion optimization.
+func TestChangeSet_Fusion(t *testing.T) {
+	doc := New("hello world")
+
+	// Create a changeset with consecutive operations that should fuse
+	cs := NewChangeSet(doc.Length()).
+		Retain(5).
+		Delete(1).
+		Delete(1).
+		Delete(1).
+		Delete(1).
+		Delete(1).
+		Delete(1). // Delete " world" as 6 separate deletions
+		Insert("a").
+		Insert("b").
+		Insert("c") // Insert "abc" as 3 separate inserts
+
+	// Before fusion: 10 operations (1 retain + 6 deletes + 3 inserts)
+	if len(cs.operations) != 10 {
+		t.Errorf("Expected 10 operations before fusion, got %d", len(cs.operations))
+	}
+
+	// Apply the changeset (which triggers fusion)
+	result := cs.Apply(doc)
+
+	// After fusion, operations should be merged
+	// Expected: Retain(5) + Delete(6) + Insert("abc") = 3 operations
+	if len(cs.operations) != 3 {
+		t.Errorf("Expected 3 operations after fusion, got %d", len(cs.operations))
+	}
+
+	// Verify the result is correct
+	expected := "helloabc"
+	if result.String() != expected {
+		t.Errorf("Expected %q, got %q", expected, result.String())
+	}
+
+	// Verify the fused operations are correct
+	if cs.operations[0].OpType != OpRetain || cs.operations[0].Length != 5 {
+		t.Error("First operation should be Retain(5)")
+	}
+	if cs.operations[1].OpType != OpDelete || cs.operations[1].Length != 6 {
+		t.Error("Second operation should be Delete(6)")
+	}
+	if cs.operations[2].OpType != OpInsert || cs.operations[2].Text != "abc" {
+		t.Error("Third operation should be Insert(\"abc\")")
+	}
+}
+
+// BenchmarkChangeSet_Apply benchmarks changeset application.
+func BenchmarkChangeSet_Apply(b *testing.B) {
+	doc := New("hello world, this is a test document")
+
+	cs := NewChangeSet(doc.Length()).
+		Retain(5).
+		Delete(7).
+		Insert(" gophers")
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		testDoc := New("hello world, this is a test document")
+		_ = cs.Apply(testDoc)
+	}
+}
+
+// BenchmarkChangeSet_Apply_WithFusion benchmarks with many consecutive operations.
+func BenchmarkChangeSet_Apply_WithFusion(b *testing.B) {
+	doc := New("hello world")
+
+	// Create a changeset with many consecutive operations that benefit from fusion
+	cs := NewChangeSet(doc.Length())
+	for i := 0; i < 100; i++ {
+		cs.Insert("x")
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		testDoc := New("hello world")
+		_ = cs.Apply(testDoc)
+	}
+}
+
+// BenchmarkHistory_UndoRedo benchmarks undo/redo operations.
+func BenchmarkHistory_UndoRedo(b *testing.B) {
+	history := NewHistory()
+	doc := New("hello world")
+
+	// Create 100 revisions
+	for i := 0; i < 100; i++ {
+		cs := NewChangeSet(doc.Length()).
+			Retain(doc.Length()).
+			Insert("x")
+		txn := NewTransaction(cs)
+		history.CommitRevision(txn, doc)
+		doc = txn.Apply(doc)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		// Undo 10 times
+		for j := 0; j < 10; j++ {
+			undoTxn := history.Undo()
+			if undoTxn != nil {
+				doc = undoTxn.Apply(doc)
+			}
+		}
+		// Redo 10 times
+		for j := 0; j < 10; j++ {
+			redoTxn := history.Redo()
+			if redoTxn != nil {
+				doc = redoTxn.Apply(doc)
+			}
+		}
+	}
+}
