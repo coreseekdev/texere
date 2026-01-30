@@ -516,23 +516,71 @@ func (h *History) findRevisionByTime(targetTime time.Time, searchBackwards bool)
 }
 
 // buildTransactionToRevision builds a transaction to navigate from current to target revision.
-// This computes the path using the lowest common ancestor algorithm.
+// This computes the path using the lowest common ancestor algorithm and composes transactions.
 func (h *History) buildTransactionToRevision(targetIdx int) *Transaction {
 	if targetIdx == h.current {
 		return nil
 	}
 
-	// Find lowest common ancestor (used for future path composition)
-	_ = h.lowestCommonAncestor(h.current, targetIdx)
+	// Find lowest common ancestor
+	lca := h.lowestCommonAncestor(h.current, targetIdx)
 
-	// Path from current to LCA (undo operations)
-	// Path from LCA to target (redo operations)
+	// Build path from current to LCA (undo operations)
+	var undoPath []*Transaction
+	current := h.current
+	for current != lca && current >= 0 {
+		if current >= len(h.revisions) {
+			break
+		}
+		rev := h.revisions[current]
+		undoPath = append(undoPath, NewTransaction(rev.inversion.changeset))
+		current = rev.parent
+	}
 
-	// Simplified: Just move to target and return its transaction
-	// A full implementation would compose multiple transactions
+	// Build path from LCA to target (redo operations)
+	var redoPath []*Transaction
+	target := targetIdx
+	for target != lca && target >= 0 {
+		if target >= len(h.revisions) {
+			break
+		}
+		rev := h.revisions[target]
+		redoPath = append([]*Transaction{NewTransaction(rev.transaction.changeset)}, redoPath...)
+		target = rev.parent
+	}
+
+	// Compose all transactions
+	// First apply undo path in reverse, then redo path
+	var composed *ChangeSet = nil
+
+	// Compose undo path
+	for i := len(undoPath) - 1; i >= 0; i-- {
+		txn := undoPath[i]
+		if composed == nil {
+			composed = txn.changeset
+		} else {
+			composed = composed.Compose(txn.changeset)
+		}
+	}
+
+	// Compose redo path
+	for _, txn := range redoPath {
+		if composed == nil {
+			composed = txn.changeset
+		} else {
+			composed = composed.Compose(txn.changeset)
+		}
+	}
+
+	// Move to target
 	oldCurrent := h.current
 	h.current = targetIdx
 
+	if composed != nil {
+		return NewTransaction(composed)
+	}
+
+	// Fallback: return target's transaction directly
 	if targetIdx >= 0 && targetIdx < len(h.revisions) {
 		return h.revisions[targetIdx].transaction
 	}

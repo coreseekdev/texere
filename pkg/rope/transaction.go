@@ -163,54 +163,6 @@ func (cs *ChangeSet) Invert(original *Rope) *ChangeSet {
 	return inverted
 }
 
-// Compose composes this changeset with another, producing a changeset that
-// represents applying this changeset followed by the other.
-func (cs *ChangeSet) Compose(other *ChangeSet) *ChangeSet {
-	if cs.IsEmpty() {
-		return other
-	}
-	if other == nil || other.IsEmpty() {
-		return cs
-	}
-
-	// This is a simplified composition
-	// A full implementation would handle overlapping operations correctly
-	result := NewChangeSet(cs.lenBefore)
-
-	// Apply this changeset's operations
-	pos := 0
-	for _, op := range cs.operations {
-		switch op.OpType {
-		case OpRetain:
-			result.Retain(op.Length)
-			pos += op.Length
-
-		case OpDelete:
-			result.Delete(op.Length)
-			pos += op.Length
-
-		case OpInsert:
-			result.Insert(op.Text)
-			pos += len([]rune(op.Text))
-		}
-	}
-
-	// Apply other changeset's operations (simplified)
-	// TODO: Implement proper composition with position mapping
-	for _, op := range other.operations {
-		switch op.OpType {
-		case OpRetain:
-			result.Retain(op.Length)
-		case OpDelete:
-			result.Delete(op.Length)
-		case OpInsert:
-			result.Insert(op.Text)
-		}
-	}
-
-	return result
-}
-
 // Transaction represents an atomic edit operation with optional selection state.
 type Transaction struct {
 	changeset  *ChangeSet

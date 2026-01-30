@@ -75,8 +75,10 @@ func NewPositionWithOffset(pos int, assoc Assoc, offset int) *Position {
 // PositionMapper maps positions through a changeset.
 // This handles cursor position updates after edits.
 type PositionMapper struct {
-	changeset *ChangeSet
-	positions []*Position
+	changeset     *ChangeSet
+	positions     []*Position
+	document      *Rope     // Optional: document for word boundary detection
+	wordBoundary  *WordBoundary
 }
 
 // NewPositionMapper creates a new position mapper for the given changeset.
@@ -84,6 +86,16 @@ func NewPositionMapper(cs *ChangeSet) *PositionMapper {
 	return &PositionMapper{
 		changeset: cs,
 		positions: make([]*Position, 0),
+	}
+}
+
+// NewPositionMapperWithDoc creates a new position mapper with document for word boundaries.
+func NewPositionMapperWithDoc(cs *ChangeSet, doc *Rope) *PositionMapper {
+	return &PositionMapper{
+		changeset:    cs,
+		positions:    make([]*Position, 0),
+		document:     doc,
+		wordBoundary: NewWordBoundary(doc),
 	}
 }
 
@@ -209,11 +221,17 @@ func (pm *PositionMapper) applyAssociation(position *Position, oldPos, newPos, c
 
 	case AssocBeforeWord:
 		// Move to start of word before position
-		return pm.findWordBoundary(newPos, -1)
+		if pm.wordBoundary != nil {
+			return pm.wordBoundary.PrevWordStart(newPos)
+		}
+		return newPos
 
 	case AssocAfterWord:
 		// Move to start of word after position
-		return pm.findWordBoundary(newPos, 1)
+		if pm.wordBoundary != nil {
+			return pm.wordBoundary.NextWordStart(newPos)
+		}
+		return newPos
 
 	case AssocBeforeSticky:
 		// Keep relative offset in exact-size replacements
@@ -232,19 +250,6 @@ func (pm *PositionMapper) applyAssociation(position *Position, oldPos, newPos, c
 func (pm *PositionMapper) applyAfterAssociation(oldPos, newPos, currentPos int) int {
 	// If we're exactly at the position, stay after any inserts/deletes
 	return newPos
-}
-
-// findWordBoundary finds the next word boundary in the given direction.
-// This requires access to the document text, which we don't have here.
-// For now, we return the position as-is. A full implementation would
-// need access to the document or a cached representation.
-func (pm *PositionMapper) findWordBoundary(pos int, direction int) int {
-	// Simplified implementation - just return the position
-	// A full implementation would:
-	// 1. Access document text
-	// 2. Scan forward/backward for word boundaries
-	// 3. Handle Unicode word boundaries
-	return pos
 }
 
 // mapUnsorted maps positions in O(M*N) time.
