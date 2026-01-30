@@ -34,11 +34,10 @@ type RopeNode interface {
 	// Size returns the number of bytes in this subtree.
 	Size() int
 
-	// Slice returns a substring from start to end (character positions).
-	// start and end are relative to this node, not the entire rope.
+	// Slice returns a substring from start to end (character positions relative to this node).
 	Slice(start, end int) string
 
-	// IsLeaf returns true if this is a leaf node (contains text).
+	// IsLeaf reports whether this is a leaf node (contains text).
 	IsLeaf() bool
 }
 
@@ -47,8 +46,7 @@ type LeafNode struct {
 	text string
 }
 
-// InternalNode represents an internal node in the rope tree.
-// It maintains balance and caches subtree information.
+// InternalNode is an internal node in the rope tree that maintains balance and caches subtree info.
 type InternalNode struct {
 	left   RopeNode
 	right  RopeNode
@@ -58,17 +56,14 @@ type InternalNode struct {
 
 // ========== RopeNode Implementations ==========
 
-// Length returns the number of characters in this leaf.
 func (n *LeafNode) Length() int {
 	return utf8.RuneCountInString(n.text)
 }
 
-// Size returns the number of bytes in this leaf.
 func (n *LeafNode) Size() int {
 	return len(n.text)
 }
 
-// Slice returns a substring from this leaf.
 func (n *LeafNode) Slice(start, end int) string {
 	// Convert character positions to byte positions without []rune conversion
 	byteStart := 0
@@ -86,22 +81,18 @@ func (n *LeafNode) Slice(start, end int) string {
 	return n.text[byteStart:byteEnd]
 }
 
-// IsLeaf returns true for leaf nodes.
 func (n *LeafNode) IsLeaf() bool {
 	return true
 }
 
-// Length returns the total characters in this subtree.
 func (n *InternalNode) Length() int {
 	return n.length + n.right.Length()
 }
 
-// Size returns the total bytes in this subtree.
 func (n *InternalNode) Size() int {
 	return n.size + n.right.Size()
 }
 
-// Slice returns a substring from this internal node.
 func (n *InternalNode) Slice(start, end int) string {
 	leftLen := n.left.Length()
 
@@ -121,14 +112,13 @@ func (n *InternalNode) Slice(start, end int) string {
 	return leftPart + rightPart
 }
 
-// IsLeaf returns false for internal nodes.
 func (n *InternalNode) IsLeaf() bool {
 	return false
 }
 
 // ========== Rope Constructors ==========
 
-// New creates a new Rope from the given string.
+// New creates a Rope from the given string.
 func New(text string) *Rope {
 	if text == "" {
 		return Empty()
@@ -141,7 +131,7 @@ func New(text string) *Rope {
 	}
 }
 
-// Empty creates an empty Rope.
+// Empty returns an empty Rope.
 func Empty() *Rope {
 	return &Rope{
 		root:   &LeafNode{text: ""},
@@ -150,9 +140,9 @@ func Empty() *Rope {
 	}
 }
 
-// ========== Basic Query Operations ==========
+// ========== Query Operations ==========
 
-// Length returns the total number of characters (Unicode code points) in the rope.
+// Length returns the number of characters (Unicode code points) in the rope.
 func (r *Rope) Length() int {
 	if r == nil {
 		return 0
@@ -160,7 +150,7 @@ func (r *Rope) Length() int {
 	return r.length
 }
 
-// Size returns the total number of bytes in the rope.
+// Size returns the number of bytes in the rope.
 func (r *Rope) Size() int {
 	if r == nil {
 		return 0
@@ -168,8 +158,7 @@ func (r *Rope) Size() int {
 	return r.size
 }
 
-// String returns the complete content of the rope as a string.
-// Optimized implementation using strings.Builder for minimal allocations.
+// String returns the complete content as a string.
 func (r *Rope) String() string {
 	if r == nil || r.length == 0 {
 		return ""
@@ -188,13 +177,12 @@ func (r *Rope) String() string {
 	return b.String()
 }
 
-// Bytes returns the complete content of the rope as a byte slice.
+// Bytes returns the complete content as a byte slice.
 func (r *Rope) Bytes() []byte {
 	return []byte(r.String())
 }
 
-// Slice returns a substring from start to end (exclusive).
-// The indices are character positions (not byte positions).
+// Slice returns a substring from start to end (exclusive, in character positions).
 // Panics if indices are out of bounds.
 func (r *Rope) Slice(start, end int) string {
 	if r == nil {
@@ -209,7 +197,7 @@ func (r *Rope) Slice(start, end int) string {
 	return r.root.Slice(start, end)
 }
 
-// CharAt returns the character (rune) at the given character position.
+// CharAt returns the rune at the given character position.
 // Panics if position is out of bounds.
 func (r *Rope) CharAt(pos int) rune {
 	if pos < 0 || pos >= r.length {
@@ -236,7 +224,6 @@ func (r *Rope) ByteAt(pos int) byte {
 // ========== Helper Functions ==========
 
 // concatNodes concatenates two nodes and returns a new node.
-// This is the low-level operation used by Concat.
 func concatNodes(left, right RopeNode) RopeNode {
 	// If one side is empty, return the other
 	if left.Length() == 0 {
@@ -254,8 +241,7 @@ func concatNodes(left, right RopeNode) RopeNode {
 	}
 }
 
-// splitNode splits a node at a character position.
-// Returns (leftNode, rightNode).
+// splitNode splits a node at a character position, returning (left, right).
 func splitNode(node RopeNode, pos int) (RopeNode, RopeNode) {
 	if node.IsLeaf() {
 		leaf := node.(*LeafNode)
@@ -386,8 +372,9 @@ func deleteNode(node RopeNode, start, end int) RopeNode {
 
 // ========== Modification Operations ==========
 
-// Insert inserts text at the given character position.
-// Returns a new Rope, leaving the original unchanged.
+// Insert inserts text at the given character position and returns a new Rope.
+// The original Rope is unchanged.
+// Panics if position is out of bounds.
 func (r *Rope) Insert(pos int, text string) *Rope {
 	if pos < 0 || pos > r.length {
 		panic("insert position out of range")
@@ -404,8 +391,9 @@ func (r *Rope) Insert(pos int, text string) *Rope {
 	}
 }
 
-// Delete removes characters from start to end (exclusive).
-// Returns a new Rope, leaving the original unchanged.
+// Delete removes characters from start to end (exclusive) and returns a new Rope.
+// The original Rope is unchanged.
+// Panics if range is out of bounds.
 func (r *Rope) Delete(start, end int) *Rope {
 	if start < 0 || end > r.length || start > end {
 		panic("delete range out of bounds")
@@ -425,14 +413,15 @@ func (r *Rope) Delete(start, end int) *Rope {
 	}
 }
 
-// Replace replaces characters from start to end (exclusive) with the given text.
-// Returns a new Rope, leaving the original unchanged.
+// Replace replaces characters from start to end (exclusive) with text and returns a new Rope.
+// The original Rope is unchanged.
 func (r *Rope) Replace(start, end int, text string) *Rope {
 	return r.Delete(start, end).Insert(start, text)
 }
 
 // Split splits the rope at the given character position.
 // Returns (left, right) where left contains [0, pos) and right contains [pos, end).
+// Panics if position is out of bounds.
 func (r *Rope) Split(pos int) (*Rope, *Rope) {
 	if pos < 0 || pos > r.length {
 		panic("split position out of range")
@@ -463,8 +452,8 @@ func (r *Rope) Split(pos int) (*Rope, *Rope) {
 	return left, right
 }
 
-// Concat concatenates two ropes.
-// Returns a new Rope, leaving both originals unchanged.
+// Concat concatenates two ropes and returns a new Rope.
+// The original Ropes are unchanged.
 func (r *Rope) Concat(other *Rope) *Rope {
 	if r == nil || r.length == 0 {
 		return other
@@ -481,8 +470,7 @@ func (r *Rope) Concat(other *Rope) *Rope {
 	}
 }
 
-// Clone creates a shallow copy of the rope.
-// Since ropes are immutable, this returns the same instance.
+// Clone returns the rope itself (ropes are immutable, no copy needed).
 func (r *Rope) Clone() *Rope {
 	return r
 }
@@ -495,13 +483,12 @@ func (r *Rope) Lines() []string {
 	return strings.SplitAfter(content, "\n")
 }
 
-// Contains returns true if the rope contains the given substring.
+// Contains reports whether the rope contains the given substring.
 func (r *Rope) Contains(substring string) bool {
 	return strings.Contains(r.String(), substring)
 }
 
-// Index returns the first character position of the given substring,
-// or -1 if not found.
+// Index returns the first character position of substring, or -1 if not found.
 func (r *Rope) Index(substring string) int {
 	// Convert byte index to character index
 	byteIdx := strings.Index(r.String(), substring)
@@ -511,8 +498,7 @@ func (r *Rope) Index(substring string) int {
 	return utf8.RuneCountInString(r.String()[:byteIdx])
 }
 
-// LastIndex returns the last character position of the given substring,
-// or -1 if not found.
+// LastIndex returns the last character position of substring, or -1 if not found.
 func (r *Rope) LastIndex(substring string) int {
 	// Convert byte index to character index
 	byteIdx := strings.LastIndex(r.String(), substring)
@@ -528,7 +514,7 @@ func (r *Rope) Compare(other *Rope) int {
 	return strings.Compare(r.String(), other.String())
 }
 
-// Equals returns true if two ropes have identical content.
+// Equals reports whether two ropes have identical content.
 func (r *Rope) Equals(other *Rope) bool {
 	return r.String() == other.String()
 }

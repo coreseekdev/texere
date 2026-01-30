@@ -3,19 +3,14 @@ package rope
 import "unicode/utf8"
 
 // Iterator provides efficient forward and backward iteration through a Rope.
+// The iterator maintains a position and allows seeking for efficient sequential access.
 //
-// The iterator maintains a position in the rope and allows seeking,
-// which makes it efficient for operations that need to access multiple
-// positions sequentially.
+// Example:
 //
-// Example usage:
-//
-//	r := rope.New("Hello World")
-//	it := r.NewIterator()
-//
+//	it := rope.New("Hello").NewIterator()
 //	for it.Next() {
 //		ch := it.Current()
-//		// Process character
+//		// Process ch
 //	}
 type Iterator struct {
 	rope      *Rope
@@ -27,15 +22,13 @@ type Iterator struct {
 	exhausted bool    // True when iteration is complete
 }
 
-// frame represents a position in the tree traversal stack.
 type frame struct {
 	node     RopeNode
 	position int // Position within this node
 }
 
-// NewIterator creates a new iterator starting at the beginning of the rope.
-// The iterator starts positioned before the first character.
-// Call Next() to advance to the first character.
+// NewIterator creates an iterator starting at the beginning of the rope.
+// The iterator is positioned before the first character; call Next() to advance.
 func (r *Rope) NewIterator() *Iterator {
 	return &Iterator{
 		rope:      r,
@@ -46,9 +39,8 @@ func (r *Rope) NewIterator() *Iterator {
 	}
 }
 
-// IteratorAt creates a new iterator starting at the given character position.
-// The iterator is positioned at `pos`, so Current() will return the character at that position.
-// Call Next() to advance to the next character.
+// IteratorAt creates an iterator positioned at the given character position.
+// Current() will return the character at pos; call Next() to advance to the next character.
 func (r *Rope) IteratorAt(pos int) *Iterator {
 	it := &Iterator{
 		rope:      r,
@@ -60,7 +52,6 @@ func (r *Rope) IteratorAt(pos int) *Iterator {
 	return it
 }
 
-// moveToFirst positions the iterator at the first character.
 func (it *Iterator) moveToFirst() {
 	if it.rope == nil || it.rope.Length() == 0 {
 		it.exhausted = true
@@ -72,7 +63,6 @@ func (it *Iterator) moveToFirst() {
 	it.loadCurrentLeaf()
 }
 
-// pushLeft pushes the leftmost path from node to the stack.
 func (it *Iterator) pushLeft(node RopeNode) {
 	it.stack = append(it.stack, frame{node: node, position: 0})
 
@@ -83,7 +73,6 @@ func (it *Iterator) pushLeft(node RopeNode) {
 	}
 }
 
-// loadCurrentLeaf loads the current leaf text from the stack.
 func (it *Iterator) loadCurrentLeaf() {
 	if len(it.stack) == 0 {
 		it.exhausted = true
@@ -109,7 +98,7 @@ func (it *Iterator) loadCurrentLeaf() {
 	}
 }
 
-// Next advances the iterator to the next character.
+// Next advances the iterator to the next character and returns true if successful.
 // Returns false if there are no more characters.
 func (it *Iterator) Next() bool {
 	if it.exhausted {
@@ -150,7 +139,6 @@ func (it *Iterator) Next() bool {
 	return !it.exhausted
 }
 
-// advanceToNextLeaf moves to the next leaf in the tree.
 func (it *Iterator) advanceToNextLeaf() {
 	for len(it.stack) > 0 {
 		frame := it.stack[len(it.stack)-1]
@@ -169,7 +157,7 @@ func (it *Iterator) advanceToNextLeaf() {
 	it.current = ""
 }
 
-// Previous moves the iterator to the previous character.
+// Previous moves the iterator to the previous character and returns true if successful.
 // Returns false if there are no more characters.
 func (it *Iterator) Previous() bool {
 	if it.position <= 0 {
@@ -182,9 +170,9 @@ func (it *Iterator) Previous() bool {
 	return true
 }
 
-// Seek moves the iterator to the given character position.
-// Returns false if the position is out of bounds.
-// After seeking, Current() will return the character at `pos`.
+// Seek moves the iterator to the given character position and returns true if successful.
+// After seeking, Current() returns the character at pos.
+// Returns false if position is out of bounds.
 func (it *Iterator) Seek(pos int) bool {
 	if pos < 0 || pos > it.rope.Length() {
 		return false
@@ -195,7 +183,6 @@ func (it *Iterator) Seek(pos int) bool {
 	return true
 }
 
-// seekTo positions the iterator at the given character position.
 func (it *Iterator) seekTo(pos int) {
 	it.stack = it.stack[:0]
 	it.exhausted = false
@@ -216,9 +203,6 @@ func (it *Iterator) seekTo(pos int) {
 	// loadCurrentLeaf() already positioned us correctly with both runePos and bytePos
 }
 
-// seekToForIteratorAt positions the iterator at the given character position
-// for IteratorAt/Seek. Unlike seekTo(), this does NOT decrement runePos,
-// so the first Next() call will return the character at the current position.
 func (it *Iterator) seekToForIteratorAt(pos int) {
 	it.stack = it.stack[:0]
 	it.exhausted = false
@@ -239,7 +223,6 @@ func (it *Iterator) seekToForIteratorAt(pos int) {
 	// This means the first Next() will return the character at 'pos'
 }
 
-// seekInNode seeks to a position within a node.
 func (it *Iterator) seekInNode(node RopeNode, pos int) {
 	if node.IsLeaf() {
 		it.stack = append(it.stack, frame{node: node, position: pos})
@@ -259,7 +242,6 @@ func (it *Iterator) seekInNode(node RopeNode, pos int) {
 	}
 }
 
-// pushRight pushes the rightmost path from node to the stack.
 func (it *Iterator) pushRight(node RopeNode) {
 	it.stack = append(it.stack, frame{node: node, position: node.Length()})
 
@@ -270,8 +252,8 @@ func (it *Iterator) pushRight(node RopeNode) {
 	}
 }
 
-// Current returns the character at the current position.
-// Panics if the iterator is exhausted.
+// Current returns the rune at the current position.
+// Panics if the iterator is exhausted or not positioned.
 func (it *Iterator) Current() rune {
 	if it.exhausted || it.runePos < 0 {
 		panic("iterator is exhausted or not positioned")
@@ -290,22 +272,22 @@ func (it *Iterator) Position() int {
 	return it.position
 }
 
-// HasNext returns true if there are more characters to iterate.
+// HasNext reports whether there are more characters to iterate.
 func (it *Iterator) HasNext() bool {
 	return !it.exhausted && it.position < it.rope.Length()
 }
 
-// HasPrevious returns true if there are characters before the current position.
+// HasPrevious reports whether there are characters before the current position.
 func (it *Iterator) HasPrevious() bool {
 	return it.position > 0
 }
 
-// IsAtStart returns true if the iterator is at the start of the rope.
+// IsAtStart reports whether the iterator is at the start of the rope.
 func (it *Iterator) IsAtStart() bool {
 	return it.position == 0
 }
 
-// IsAtEnd returns true if the iterator is at the end of the rope.
+// IsAtEnd reports whether the iterator is at the end of the rope.
 func (it *Iterator) IsAtEnd() bool {
 	return it.position == it.rope.Length()
 }
@@ -321,8 +303,7 @@ func (it *Iterator) Reset() {
 	it.moveToFirst()
 }
 
-// Slice returns a substring from the current position to the given end position.
-// The end position is relative to the current position.
+// Slice returns a substring of length characters starting from the current position.
 func (it *Iterator) Slice(length int) string {
 	if length < 0 {
 		panic("slice length cannot be negative")
@@ -368,7 +349,7 @@ func (it *Iterator) Peek() (rune, bool) {
 	return ch, true
 }
 
-// PeekNext returns the next character (after current) without advancing.
+// PeekNext returns the character after the current position without advancing.
 // Returns (0, false) if there is no next character.
 func (it *Iterator) PeekNext() (rune, bool) {
 	if it.position+1 >= it.rope.Length() {
@@ -385,8 +366,8 @@ func (it *Iterator) PeekNext() (rune, bool) {
 	return ch, true
 }
 
-// Skip moves the iterator forward by the given number of characters.
-// Returns the number of characters actually skipped (may be less if near end).
+// Skip moves the iterator forward by count characters and returns the actual number skipped.
+// May skip fewer characters if near the end.
 func (it *Iterator) Skip(count int) int {
 	if count <= 0 {
 		return 0
@@ -402,7 +383,7 @@ func (it *Iterator) Skip(count int) int {
 	return count
 }
 
-// Collect collects all remaining characters into a string.
+// Collect returns all remaining characters as a string.
 func (it *Iterator) Collect() string {
 	if it.position >= it.rope.Length() {
 		return ""
@@ -410,14 +391,14 @@ func (it *Iterator) Collect() string {
 	return it.rope.Slice(it.position, it.rope.Length())
 }
 
-// CollectToSlice collects all remaining characters into a rune slice.
+// CollectToSlice returns all remaining characters as a rune slice.
 func (it *Iterator) CollectToSlice() []rune {
 	return []rune(it.Collect())
 }
 
-// FindNext searches for the given substring starting from the current position.
+// FindNext searches for substring starting from the current position.
 // Returns true if found and positions the iterator at the start of the match.
-// Returns false if not found (iterator position unchanged).
+// Returns false if not found (position unchanged).
 func (it *Iterator) FindNext(substring string) bool {
 	pos := it.rope.String()[it.bytePosition():]
 	idx := indexOfSubstring(pos, substring)
@@ -432,9 +413,9 @@ func (it *Iterator) FindNext(substring string) bool {
 	return true
 }
 
-// FindNextRune searches for the given rune starting from the current position.
+// FindNextRune searches for rune starting from the current position.
 // Returns true if found and positions the iterator at the rune.
-// Returns false if not found (iterator position unchanged).
+// Returns false if not found (position unchanged).
 func (it *Iterator) FindNextRune(r rune) bool {
 	for it.Next() {
 		if it.Current() == r {
@@ -444,7 +425,6 @@ func (it *Iterator) FindNextRune(r rune) bool {
 	return false
 }
 
-// bytePosition returns the byte position corresponding to the current character position.
 func (it *Iterator) bytePosition() int {
 	if it.position == 0 {
 		return 0
@@ -460,7 +440,6 @@ func (r *Rope) IndexFromByte(bytePos int) int {
 	return utf8.RuneCountInString(r.String()[:bytePos])
 }
 
-// indexOfSubstring returns the byte index of substring in s, or -1 if not found.
 func indexOfSubstring(s, substr string) int {
 	for i := 0; i <= len(s)-len(substr); i++ {
 		if s[i:i+len(substr)] == substr {
@@ -472,12 +451,12 @@ func indexOfSubstring(s, substr string) int {
 
 // ========== Runes Iterator ==========
 
-// Runes returns a slice of all runes in the rope.
+// Runes returns all runes in the rope as a slice.
 func (r *Rope) Runes() []rune {
 	return []rune(r.String())
 }
 
-// ForEach calls the given function for each character in the rope.
+// ForEach calls fn for each character in the rope.
 func (r *Rope) ForEach(fn func(rune)) {
 	it := r.NewIterator()
 	for it.Next() {
@@ -485,7 +464,7 @@ func (r *Rope) ForEach(fn func(rune)) {
 	}
 }
 
-// ForEachWithIndex calls the given function for each character with its position.
+// ForEachWithIndex calls fn for each character with its position.
 func (r *Rope) ForEachWithIndex(fn func(int, rune)) {
 	it := r.NewIterator()
 	for it.Next() {
@@ -493,7 +472,7 @@ func (r *Rope) ForEachWithIndex(fn func(int, rune)) {
 	}
 }
 
-// Map creates a new rope by applying a function to each character.
+// Map returns a new rope by applying fn to each character.
 func (r *Rope) Map(fn func(rune) rune) *Rope {
 	builder := NewBuilder()
 	r.ForEach(func(ch rune) {
@@ -502,7 +481,7 @@ func (r *Rope) Map(fn func(rune) rune) *Rope {
 	return builder.Build()
 }
 
-// Filter creates a new rope containing only characters that satisfy the predicate.
+// Filter returns a new rope containing only characters that satisfy fn.
 func (r *Rope) Filter(fn func(rune) bool) *Rope {
 	builder := NewBuilder()
 	r.ForEach(func(ch rune) {
@@ -513,7 +492,7 @@ func (r *Rope) Filter(fn func(rune) bool) *Rope {
 	return builder.Build()
 }
 
-// Reduce reduces the rope to a single value using the given function.
+// Reduce reduces the rope to a single value using fn.
 func (r *Rope) Reduce(initial interface{}, fn func(accum interface{}, ch rune) interface{}) interface{} {
 	accum := initial
 	r.ForEach(func(ch rune) {
@@ -522,7 +501,7 @@ func (r *Rope) Reduce(initial interface{}, fn func(accum interface{}, ch rune) i
 	return accum
 }
 
-// Any returns true if any character satisfies the predicate.
+// Any reports whether any character satisfies fn.
 func (r *Rope) Any(fn func(rune) bool) bool {
 	result := false
 	r.ForEach(func(ch rune) {
@@ -533,7 +512,7 @@ func (r *Rope) Any(fn func(rune) bool) bool {
 	return result
 }
 
-// All returns true if all characters satisfy the predicate.
+// All reports whether all characters satisfy fn.
 func (r *Rope) All(fn func(rune) bool) bool {
 	result := true
 	r.ForEach(func(ch rune) {
@@ -544,7 +523,7 @@ func (r *Rope) All(fn func(rune) bool) bool {
 	return result
 }
 
-// Count returns the number of characters that satisfy the predicate.
+// Count returns the number of characters that satisfy fn.
 func (r *Rope) Count(fn func(rune) bool) int {
 	count := 0
 	r.ForEach(func(ch rune) {
