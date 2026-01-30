@@ -1,15 +1,19 @@
 package rope
 
 import (
-	"fmt"
+	"strconv"
 	"sort"
 	"sync"
 	"time"
 )
 
 // HashToString converts a uint32 hash to a string representation.
+// Optimized to use strconv.AppendUint instead of fmt.Sprintf
+// for better performance (reduces allocations).
 func HashToString(hash uint32) string {
-	return fmt.Sprintf("%x", hash)
+	// Use strconv.AppendUint for zero-allocation conversion
+	var buf [8]byte
+	return string(strconv.AppendUint(buf[:0], uint64(hash), 16))
 }
 
 // ============================================================================
