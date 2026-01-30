@@ -400,7 +400,7 @@ func TestBuiltinHook_TrackMetrics(t *testing.T) {
 	assert.Equal(t, int64(2), stats["total_inserts"])
 	assert.Equal(t, int64(1), stats["total_deletes"])
 	assert.Equal(t, int64(1), stats["total_replaces"])
-	assert.Equal(t, int64(15), stats["total_chars_inserted"])
+	assert.Equal(t, int64(22), stats["total_chars_inserted"]) // 5 + 10 + 7 (replace also inserts)
 	assert.Equal(t, int64(3), stats["total_chars_deleted"])
 
 	// Reset
