@@ -1,6 +1,7 @@
 package rope
 
 import (
+	"strings"
 	"unicode/utf8"
 )
 
@@ -52,9 +53,14 @@ func (b *RopeBuilder) Append(text string) *RopeBuilder {
 		return b
 	}
 
-	// If the last operation was also an append, merge them
+	// If the last operation was also an append, accumulate it in a slice
+	// to avoid repeated string concatenation (which allocates new strings)
 	if len(b.pending) > 0 && b.pending[len(b.pending)-1].position == -1 {
-		b.pending[len(b.pending)-1].text += text
+		// Accumulate appends - they'll be joined in flush()
+		b.pending = append(b.pending, pendingInsert{
+			position: -1,
+			text:     text,
+		})
 		return b
 	}
 
@@ -111,11 +117,31 @@ func (b *RopeBuilder) flush() {
 		return
 	}
 
-	// Sort pending insertions by position
-	// For now, we'll just apply them in order
-	// TODO: Optimize by sorting and merging adjacent operations
+	// Merge consecutive append operations for efficiency
+	merged := make([]pendingInsert, 0, len(b.pending))
+	i := 0
+	for i < len(b.pending) {
+		if b.pending[i].position == -1 {
+			// Collect all consecutive appends
+			var appends []string
+			for i < len(b.pending) && b.pending[i].position == -1 {
+				appends = append(appends, b.pending[i].text)
+				i++
+			}
+			// Join all appends into one operation
+			merged = append(merged, pendingInsert{
+				position: -1,
+				text:     joinStrings(appends),
+			})
+		} else {
+			// Keep non-append operations as-is
+			merged = append(merged, b.pending[i])
+			i++
+		}
+	}
 
-	for _, op := range b.pending {
+	// Apply merged operations
+	for _, op := range merged {
 		if op.position == -1 {
 			// Append to end
 			b.rope = b.rope.Insert(b.rope.Length(), op.text)
@@ -125,6 +151,30 @@ func (b *RopeBuilder) flush() {
 	}
 
 	b.pending = b.pending[:0]
+}
+
+// joinStrings efficiently joins multiple strings
+func joinStrings(strs []string) string {
+	if len(strs) == 0 {
+		return ""
+	}
+	if len(strs) == 1 {
+		return strs[0]
+	}
+
+	// Calculate total length
+	totalLen := 0
+	for _, s := range strs {
+		totalLen += len(s)
+	}
+
+	// Build result efficiently
+	var sb strings.Builder
+	sb.Grow(totalLen)
+	for _, s := range strs {
+		sb.WriteString(s)
+	}
+	return sb.String()
 }
 
 // Length returns the current length of the rope being built.
