@@ -359,16 +359,25 @@ func (cs *ChangeSet) Optimized() *ChangeSet {
 
 // Split splits this changeset at the given position.
 // Returns two changesets: before and after the position.
+// Both changesets have lenBefore equal to the original document length,
+// but they operate on different parts of the document.
 func (cs *ChangeSet) Split(pos int) (*ChangeSet, *ChangeSet) {
 	if pos <= 0 {
-		return NewChangeSet(cs.lenBefore), cs
+		// Return empty before and full after
+		before := NewChangeSet(cs.lenBefore)
+		after := cs.clone()
+		return before, after
 	}
 	if pos >= cs.lenBefore {
-		return cs, NewChangeSet(cs.lenAfter)
+		// Return full before and empty after
+		before := cs.clone()
+		after := NewChangeSet(cs.lenBefore)
+		return before, after
 	}
 
-	before := NewChangeSet(pos)
-	after := NewChangeSet(cs.lenBefore - pos)
+	// Both changesets have the same lenBefore as original
+	before := NewChangeSet(cs.lenBefore)
+	after := NewChangeSet(cs.lenBefore)
 
 	currentPos := 0
 
@@ -409,7 +418,7 @@ func (cs *ChangeSet) Split(pos int) (*ChangeSet, *ChangeSet) {
 			}
 
 		case OpInsert:
-			// Inserts always happen at the current position
+			// Inserts at current position
 			if currentPos < pos {
 				before.Insert(op.Text)
 			} else {
@@ -418,6 +427,7 @@ func (cs *ChangeSet) Split(pos int) (*ChangeSet, *ChangeSet) {
 		}
 	}
 
+	// Recalculate lenAfter for both changesets
 	before.recalculateLenAfter()
 	after.recalculateLenAfter()
 
@@ -426,6 +436,7 @@ func (cs *ChangeSet) Split(pos int) (*ChangeSet, *ChangeSet) {
 
 // Merge merges this changeset with another at the same position.
 // This is useful for combining concurrent edits.
+// Both changesets should be based on the same document state.
 func (cs *ChangeSet) Merge(other *ChangeSet) *ChangeSet {
 	if cs.IsEmpty() {
 		return other
@@ -434,10 +445,45 @@ func (cs *ChangeSet) Merge(other *ChangeSet) *ChangeSet {
 		return cs
 	}
 
-	// Simply concatenate operations and fuse
+	// Check if both changesets are based on the same document
+	if cs.lenBefore != other.lenBefore {
+		// Cannot merge different base documents
+		// Return cs as fallback
+		return cs
+	}
+
+	// Apply first changeset to calculate the document state after cs
+	tempLen := cs.lenAfter
+
+	// Adjust second changeset's operations based on first changeset's effect
 	result := NewChangeSet(cs.lenBefore)
+	result.operations = make([]Operation, 0, len(cs.operations)+len(other.operations))
+
+	// Add first changeset's operations
 	result.operations = append(result.operations, cs.operations...)
-	result.operations = append(result.operations, other.operations...)
+
+	// Add second changeset's operations, adjusting positions
+	// This is a simplified version - proper OT transform would be more complex
+	for _, op := range other.operations {
+		switch op.OpType {
+		case OpRetain:
+			// Check if the retain position is within bounds
+			if tempLen >= op.Length {
+				result.Retain(op.Length)
+			}
+			// Skip if out of bounds
+		case OpDelete:
+			if tempLen >= op.Length {
+				result.Delete(op.Length)
+				tempLen -= op.Length
+			}
+			// Skip if out of bounds
+		case OpInsert:
+			result.Insert(op.Text)
+			tempLen += len([]rune(op.Text))
+		}
+	}
+
 	result.fuse()
 	result.recalculateLenAfter()
 
