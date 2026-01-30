@@ -785,6 +785,197 @@ for it.Next() {
 
 ---
 
+## 撤销和重做 (Undo/Redo)
+
+Rope 包提供了完整的撤销/重做功能，基于 Helix 编辑器的设计模式实现。
+
+### 基础 Undo/Redo
+
+```go
+package main
+
+import (
+    "fmt"
+    "github.com/texere-rope/pkg/rope"
+)
+
+func main() {
+    // 创建文档和历史记录
+    doc := rope.New("Hello World")
+    history := rope.NewHistory()
+
+    // 第一次编辑：插入 " Beautiful"
+    cs := rope.NewChangeSet(doc.Length()).
+        Retain(5).
+        Insert(" Beautiful")
+    txn1 := rope.NewTransaction(cs)
+
+    // 提交到历史并应用
+    history.CommitRevision(txn1, doc)
+    doc = txn1.Apply(doc)
+
+    fmt.Println(doc.String()) // "Hello Beautiful World"
+
+    // 第二次编辑：删除 " Beautiful"
+    cs = rope.NewChangeSet(doc.Length()).
+        Retain(5).
+        Delete(10)
+    txn2 := rope.NewTransaction(cs)
+
+    history.CommitRevision(txn2, doc)
+    doc = txn2.Apply(doc)
+
+    fmt.Println(doc.String()) // "Hello World"
+
+    // 撤销第二次编辑
+    undoTxn := history.Undo()
+    if undoTxn != nil {
+        doc = undoTxn.Apply(doc)
+        fmt.Println("After undo:", doc.String()) // "Hello Beautiful World"
+    }
+
+    // 重做
+    redoTxn := history.Redo()
+    if redoTxn != nil {
+        doc = redoTxn.Apply(doc)
+        fmt.Println("After redo:", doc.String()) // "Hello World"
+    }
+}
+```
+
+### 检查 Undo/Redo 可用性
+
+```go
+history := rope.NewHistory()
+
+// 初始状态
+fmt.Println("CanUndo:", history.CanUndo()) // false
+fmt.Println("CanRedo:", history.CanRedo()) // false
+
+// 做一些编辑...
+history.CommitRevision(txn, doc)
+doc = txn.Apply(doc)
+
+fmt.Println("CanUndo:", history.CanUndo()) // true
+fmt.Println("CanRedo:", history.CanRedo()) // false
+
+history.Undo()
+
+fmt.Println("CanUndo:", history.CanUndo()) // false (已回到根)
+fmt.Println("CanRedo:", history.CanRedo()) // true
+```
+
+### 分支历史
+
+Rope 的历史记录是基于树的，支持非线性撤销：
+
+```go
+history := rope.NewHistory()
+doc := rope.New("Hello")
+
+// 编辑 1
+cs1 := rope.NewChangeSet(doc.Length()).
+    Retain(5).
+    Insert(" World")
+txn1 := rope.NewTransaction(cs1)
+history.CommitRevision(txn1, doc)
+doc = txn1.Apply(doc)
+
+// 撤销编辑 1
+undoTxn := history.Undo()
+doc = undoTxn.Apply(doc)
+
+// 做不同的编辑（创建新分支）
+cs2 := rope.NewChangeSet(doc.Length()).
+    Retain(5).
+    Insert(" Gophers")
+txn2 := rope.NewTransaction(cs2)
+history.CommitRevision(txn2, doc)
+doc = txn2.Apply(doc)
+
+fmt.Println(doc.String()) // "Hello Gophers"
+
+// 注意：此时无法直接 redo 到 "Hello World"
+// 因为我们在不同的历史分支上
+fmt.Println("CanRedo:", history.CanRedo()) // false
+```
+
+### 历史记录统计
+
+```go
+history := rope.NewHistory()
+
+// ... 做一些编辑 ...
+
+stats := history.Stats()
+fmt.Printf("总修订数: %d\n", stats.TotalRevisions)
+fmt.Printf("当前索引: %d\n", stats.CurrentIndex)
+fmt.Printf("最大大小: %d\n", stats.MaxSize)
+fmt.Printf("可撤销: %v\n", stats.CanUndo)
+fmt.Printf("可重做: %v\n", stats.CanRedo)
+```
+
+### 时间导航
+
+```go
+history := rope.NewHistory()
+doc := rope.New("Hello")
+
+// 做多个编辑...
+for i := 0; i < 5; i++ {
+    cs := rope.NewChangeSet(doc.Length()).
+        Retain(doc.Length()).
+        Insert(string(rune('a' + i)))
+    txn := rope.NewTransaction(cs)
+    history.CommitRevision(txn, doc)
+    doc = txn.Apply(doc)
+}
+
+// 撤销 3 步（注意：目前只支持单步）
+earlierTxn := history.Undo()
+doc = earlierTxn.Apply(doc)
+// 继续撤销...
+earlierTxn = history.Undo()
+doc = earlierTxn.Apply(doc)
+earlierTxn = history.Undo()
+doc = earlierTxn.Apply(doc)
+
+fmt.Println(doc.String()) // 回到 3 步之前的状态
+```
+
+### 历史记录限制
+
+```go
+history := rope.NewHistory()
+history.SetMaxSize(100) // 最多保留 100 个修订
+
+// 当达到限制时，最旧的修订会被自动移除
+```
+
+### 清除历史
+
+```go
+history.Clear()
+// 清除所有历史记录
+```
+
+### 设计原理
+
+Rope 的 undo/redo 基于 Helix 编辑器的设计：
+
+1. **Transaction（事务）**: 代表一个原子编辑操作
+2. **ChangeSet（变更集）**: 可组合、可逆的操作序列
+3. **Inversion（反转）**: 预计算的撤销操作
+4. **Tree History（树形历史）**: 支持非线性撤销分支
+
+关键特性：
+- ✅ **不可变性**: 所有操作返回新的 Rope
+- ✅ **线程安全**: 历史记录使用锁保护
+- ✅ **高效**: 利用 Rope 的持久化特性
+- ✅ **灵活**: 支持复杂的编辑模式
+
+---
+
 ## 完整示例
 
 ### 示例 1: 文本编辑器基础操作
