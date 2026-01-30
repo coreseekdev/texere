@@ -1,10 +1,9 @@
 package rope
 
-// import "fmt"
-
 // Compose composes this changeset with another, producing a changeset that
 // represents applying this changeset followed by the other.
 // This implementation follows Helix editor's approach with OT-based composition.
+// See: https://github.com/helix-editor/helix/blob/master/helix-core/src/transaction.rs#L163
 func (cs *ChangeSet) Compose(other *ChangeSet) *ChangeSet {
 	// Handle empty changesets
 	if cs.IsEmpty() {
@@ -44,40 +43,92 @@ func (cs *ChangeSet) Compose(other *ChangeSet) *ChangeSet {
 	}
 
 	result := NewChangeSet(csFinal.lenBefore)
-	i, j := 0, 0
 	firstOps := csFinal.operations
 	secondOps := otherFinal.operations
+	i, j := 0, 0
 
-	// Debug: track composition steps
-	step := 0
-
-	// Use two-pointer iteration algorithm (like merge sort)
+	// Helix-style composition loop
 	for i < len(firstOps) || j < len(secondOps) {
-		// Debug: track composition steps
-		if i < len(firstOps) && j < len(secondOps) {
-			step++
-			// fmt.Printf("[Step %d] Compose: firstOps[%d]=%+v, secondOps[%d]=%+v\n",
-			// 	step, i, firstOps[i], j, secondOps[j])
+		// Get current operations (use placeholder if exhausted)
+		var firstOp, secondOp *Operation
+		if i < len(firstOps) {
+			firstOp = &firstOps[i]
 		}
-		if i >= len(firstOps) {
+		if j < len(secondOps) {
+			secondOp = &secondOps[j]
+		}
+
+		// Rule 1: Deletion in first (A) has highest priority
+		if firstOp != nil && firstOp.OpType == OpDelete {
+			// Check if secondOp is also Delete
+			if secondOp != nil && secondOp.OpType == OpDelete {
+				// Delete(A) + Delete(B): merge them
+				// Delete(B) wants to delete deleteLen chars, Delete(A) deletes deleteALen chars
+				// These are deleting the same content, so output Delete(deleteALen)
+				// and reduce Delete(B) by deleteALen
+				deleteALen := firstOp.Length
+				deleteBLen := secondOp.Length
+
+				if deleteALen < deleteBLen {
+					// Delete(A) is smaller - output Delete(deleteALen), reduce Delete(B)
+					result.addOperation(*firstOp)
+					i++
+					// Put back reduced Delete(B)
+					secondOps[j] = Operation{OpType: OpDelete, Length: deleteBLen - deleteALen}
+					continue
+				} else if deleteALen == deleteBLen {
+					// Delete(A) == Delete(B) - output Delete(deleteALen), consume both
+					result.addOperation(*firstOp)
+					i++
+					j++
+					continue
+				} else {
+					// Delete(A) is larger - output Delete(deleteBLen), reduce Delete(A)
+					result.addOperation(Operation{OpType: OpDelete, Length: deleteBLen})
+					j++
+					// Put back reduced Delete(A)
+					i++
+					firstOps[i-1] = Operation{OpType: OpDelete, Length: deleteALen - deleteBLen}
+					continue
+				}
+			} else {
+				// Delete(A) with non-Delete(B): output Delete(A) as-is
+				result.addOperation(*firstOp)
+				i++
+				// Don't increment j - keep second operation for next iteration
+				continue
+			}
+		}
+
+		// Rule 2: Insertion in second (B) has highest priority
+		// But NOT when first is Delete (Delete won't be skipped)
+		if secondOp != nil && secondOp.OpType == OpInsert {
+			if firstOp == nil || firstOp.OpType != OpDelete {
+				result.addOperation(*secondOp)
+				j++
+				// Don't increment i - keep first operation for next iteration
+				continue
+			}
+			// If first is Delete, fall through - Delete(A) already handled this
+		}
+
+		// If we get here, both operations are present and neither is Delete(A) nor Insert(B)
+		if firstOp == nil {
 			// Only second operations remaining
-			result.addOperation(secondOps[j])
+			result.addOperation(*secondOp)
 			j++
 			continue
 		}
 
-		if j >= len(secondOps) {
+		if secondOp == nil {
 			// Only first operations remaining
-			result.addOperation(firstOps[i])
+			result.addOperation(*firstOp)
 			i++
 			continue
 		}
 
-		// Both operations available - need to compose them
-		firstOp := firstOps[i]
-		secondOp := secondOps[j]
-
-		composed := composeOperations(firstOp, secondOp, &i, &j, firstOps, secondOps)
+		// Compose the two operations
+		composed := composeOperations(*firstOp, *secondOp, &i, &j, firstOps, secondOps)
 		if composed != nil {
 			result.addOperation(*composed)
 		}
@@ -98,15 +149,11 @@ func (cs *ChangeSet) clone() *ChangeSet {
 }
 
 // composeOperations composes two individual operations.
-// Returns the composed operation, or nil if operations should be processed separately.
+// Returns the composed operation, or nil if operations should be skipped.
 // Updates indices i and j as needed.
+// This implements the remaining cases after handling Delete(A) and Insert(B) priority.
 func composeOperations(firstOp, secondOp Operation, i, j *int, firstOps, secondOps []Operation) *Operation {
 	switch firstOp.OpType {
-	case OpDelete:
-		// Delete in first operation wins - second operation can't affect deleted content
-		*i++
-		return &firstOp
-
 	case OpInsert:
 		// First operation inserts text
 		insertText := firstOp.Text
@@ -118,68 +165,46 @@ func composeOperations(firstOp, secondOp Operation, i, j *int, firstOps, secondO
 			deleteLen := secondOp.Length
 
 			if insertLen < deleteLen {
-				// Insertion is shorter than deletion - all inserted text is deleted, plus more
+				// Insert is shorter than delete - both operations cancel out (insert is deleted)
 				*i++
 				*j++
-				return &secondOp
+				// Put back remaining delete
+				remainingDelete := deleteLen - insertLen
+				if remainingDelete > 0 {
+					*j--
+					secondOps[*j] = Operation{OpType: OpDelete, Length: remainingDelete}
+				}
+				return nil // Skip the Insert (it's deleted)
 			} else if insertLen == deleteLen {
 				// Exact match - both operations cancel out
 				*i++
 				*j++
 				return nil // Skip both
 			} else {
-				// Insertion is longer than deletion - part of insertion is deleted
-				remainingInsert := insertText[insertLen:] // After deleteLen characters
-				// Keep remaining part of insertion
+				// Insert is longer than delete - part of insert is deleted
 				*i++
 				*j++
-				return &Operation{OpType: OpInsert, Text: remainingInsert}
+				// Put back the remaining insert
+				remainingInsert := string([]rune(insertText)[deleteLen:])
+				*i--
+				firstOps[*i] = Operation{OpType: OpInsert, Text: remainingInsert}
+				return nil // Skip the Delete (consumed by insert)
 			}
 
 		case OpRetain:
 			// Second operation retains
-			retainLen := secondOp.Length
-
-			if insertLen < retainLen {
-				// Insertion is shorter - all of it is retained, then retain more
-				result := Operation{OpType: OpInsert, Text: insertText}
-				*i++
-				// Don't increment j - keep secondOp for next iteration
-				// But reduce its length by insertLen
-				secondOps[*j] = Operation{OpType: OpRetain, Length: retainLen - insertLen}
-				return &result
-			} else if insertLen == retainLen {
-				// Exact match - insert then retain cancels out
-				*i++
-				*j++
-				return nil // Skip both
-			} else {
-				// Insertion is longer - split the insertion
-				// Part of insertion is retained, part is kept as insert
-				splitPoint := retainLen
-				beforePart := insertText[:splitPoint]
-				afterPart := insertText[splitPoint:]
-
-				result := Operation{OpType: OpInsert, Text: beforePart}
-				*i++
-				*j++
-
-				// Keep after part as a new Insert operation
-				// But first, we need to handle the current secondOp
-				if len(afterPart) > 0 {
-					// Add the after part after processing current secondOp
-					// For now, just return the first part
-					return &result
-				}
-				return &result
-			}
+			// Insert doesn't consume characters, Retain does
+			// So we should output Insert, and the Retain will be processed later
+			result := Operation{OpType: OpInsert, Text: insertText}
+			*i++
+			// Don't increment j - the Retain will consume characters from Retain(A) or Delete(A) operations
+			return &result
 
 		case OpInsert:
-			// Second operation also inserts - just combine both inserts
-			combinedText := insertText + secondOp.Text
-			*i++
+			// This shouldn't happen - Insert(B) is handled with priority
+			// But if we get here, just return the second insert
 			*j++
-			return &Operation{OpType: OpInsert, Text: combinedText}
+			return &secondOp
 		}
 
 	case OpRetain:
@@ -192,11 +217,16 @@ func composeOperations(firstOp, secondOp Operation, i, j *int, firstOps, secondO
 			deleteLen := secondOp.Length
 
 			if retainLen < deleteLen {
-				// Retain less than delete - delete some, then delete more
+				// Retain less than delete - delete the retained content
 				result := Operation{OpType: OpDelete, Length: retainLen}
 				*i++
-				// Update second operation to delete remaining
+				// Put back delete with reduced length
 				*j++
+				remainingDelete := deleteLen - retainLen
+				if remainingDelete > 0 {
+					*j--
+					secondOps[*j] = Operation{OpType: OpDelete, Length: remainingDelete}
+				}
 				return &result
 			} else if retainLen == deleteLen {
 				// Exact match - delete the retained content
@@ -205,16 +235,17 @@ func composeOperations(firstOp, secondOp Operation, i, j *int, firstOps, secondO
 				*j++
 				return &result
 			} else {
-				// Retain more than delete - retain some, then delete remaining
-				result := Operation{OpType: OpRetain, Length: deleteLen}
+				// Retain more than delete - delete some, retain the rest
+				result := Operation{OpType: OpDelete, Length: deleteLen}
 				*i++
-				// Keep first operation's remaining retain
+				*j++
+
+				// Put back remaining retain
 				remainingRetain := retainLen - deleteLen
 				if remainingRetain > 0 {
-					// Add remaining retain as a new operation
-					return &result
+					*i--
+					firstOps[*i] = Operation{OpType: OpRetain, Length: remainingRetain}
 				}
-				*j++
 				return &result
 			}
 
@@ -229,24 +260,24 @@ func composeOperations(firstOp, secondOp Operation, i, j *int, firstOps, secondO
 			*i++
 			*j++
 
-			// Handle remaining parts by NOT incrementing the index
-			// that still has more to retain
+			// Handle remaining parts
 			firstRemaining := retainLen - minLen
 			secondRemaining := secondOp.Length - minLen
 
 			if firstRemaining > 0 && secondRemaining > 0 {
-				// Both have remaining - need another iteration
-				// This shouldn't happen with min, but handle it
-				*i-- // Put back first operation
-				*j-- // Put back second operation
+				// Both have remaining - put back both
+				*i--
+				*j--
+				firstOps[*i] = Operation{OpType: OpRetain, Length: firstRemaining}
+				secondOps[*j] = Operation{OpType: OpRetain, Length: secondRemaining}
 				return &result
 			} else if firstRemaining > 0 {
-				// First has remaining - put it back with updated length
+				// First has remaining - put it back
 				*i--
 				firstOps[*i] = Operation{OpType: OpRetain, Length: firstRemaining}
 				return &result
 			} else if secondRemaining > 0 {
-				// Second has remaining - put it back with updated length
+				// Second has remaining - put it back
 				*j--
 				secondOps[*j] = Operation{OpType: OpRetain, Length: secondRemaining}
 				return &result
@@ -255,16 +286,14 @@ func composeOperations(firstOp, secondOp Operation, i, j *int, firstOps, secondO
 			return &result
 
 		case OpInsert:
-			// Second operation inserts after retained range
-			// Process the retain first, then insert will be handled
-			result := Operation{OpType: OpRetain, Length: retainLen}
-			*i++
-			return &result
+			// This shouldn't happen - Insert(B) is handled with priority
+			// But if we get here, just return the insert
+			return &secondOp
 		}
 	}
 
 	// Should not reach here
-	return &firstOp
+	return nil
 }
 
 // addOperation adds an operation to the changeset with fusion.
@@ -359,20 +388,13 @@ func (cs *ChangeSet) Optimized() *ChangeSet {
 
 // Split splits this changeset at the given position.
 // Returns two changesets: before and after the position.
-// Both changesets have lenBefore equal to the original document length,
-// but they operate on different parts of the document.
+// Both changesets can be applied to the original document independently.
 func (cs *ChangeSet) Split(pos int) (*ChangeSet, *ChangeSet) {
 	if pos <= 0 {
-		// Return empty before and full after
-		before := NewChangeSet(cs.lenBefore)
-		after := cs.clone()
-		return before, after
+		return NewChangeSet(cs.lenBefore), cs.clone()
 	}
 	if pos >= cs.lenBefore {
-		// Return full before and empty after
-		before := cs.clone()
-		after := NewChangeSet(cs.lenBefore)
-		return before, after
+		return cs.clone(), NewChangeSet(cs.lenBefore)
 	}
 
 	// Both changesets have the same lenBefore as original
@@ -427,11 +449,55 @@ func (cs *ChangeSet) Split(pos int) (*ChangeSet, *ChangeSet) {
 		}
 	}
 
-	// Recalculate lenAfter for both changesets
+	// Finalize both changesets to ensure they cover entire document
+	// before needs to retain the rest of the document unchanged
+	// after needs to retain the prefix of the document unchanged
+	before.retainRemaining(pos)
+	after.retainPrefix(pos)
+
 	before.recalculateLenAfter()
 	after.recalculateLenAfter()
 
 	return before, after
+}
+
+// retainRemaining retains all characters from current position to end
+func (cs *ChangeSet) retainRemaining(fromPos int) {
+	processed := 0
+	for _, op := range cs.operations {
+		switch op.OpType {
+		case OpRetain, OpDelete:
+			processed += op.Length
+		case OpInsert:
+			// Inserts don't consume original characters
+		}
+	}
+	remaining := cs.lenBefore - processed
+	if remaining > 0 {
+		cs.Retain(remaining)
+	}
+}
+
+// retainPrefix retains characters from start to given position
+func (cs *ChangeSet) retainPrefix(toPos int) {
+	processed := 0
+	for _, op := range cs.operations {
+		switch op.OpType {
+		case OpRetain, OpDelete:
+			if processed+op.Length <= toPos {
+				processed += op.Length
+			} else {
+				// Need to split or skip
+				remaining := toPos - processed
+				if remaining > 0 {
+					cs.Retain(remaining)
+				}
+				processed = toPos
+			}
+		case OpInsert:
+			// Inserts don't consume original characters
+		}
+	}
 }
 
 // Merge merges this changeset with another at the same position.

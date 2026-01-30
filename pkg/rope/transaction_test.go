@@ -577,14 +577,11 @@ func TestChangeSet_Fusion(t *testing.T) {
 		t.Errorf("Expected 10 operations before fusion, got %d", len(cs.operations))
 	}
 
-	// Apply the changeset (which triggers fusion)
+	// Apply the changeset (which triggers fusion on a copy, not the original)
 	result := cs.Apply(doc)
 
-	// After fusion, operations should be merged
-	// Expected: Retain(5) + Delete(6) + Insert("abc") = 3 operations
-	if len(cs.operations) != 3 {
-		t.Errorf("Expected 3 operations after fusion, got %d", len(cs.operations))
-	}
+	// Note: Apply creates a copy and fuses the copy, not the original changeset
+	// So cs.operations still has 10 operations (not fused)
 
 	// Verify the result is correct
 	expected := "helloabc"
@@ -592,14 +589,20 @@ func TestChangeSet_Fusion(t *testing.T) {
 		t.Errorf("Expected %q, got %q", expected, result.String())
 	}
 
-	// Verify the fused operations are correct
-	if cs.operations[0].OpType != OpRetain || cs.operations[0].Length != 5 {
+	// To get fused operations, use Optimized()
+	optimized := cs.Optimized()
+	if len(optimized.operations) != 3 {
+		t.Errorf("Expected 3 operations after optimization, got %d", len(optimized.operations))
+	}
+
+	// Verify the optimized operations are correct
+	if optimized.operations[0].OpType != OpRetain || optimized.operations[0].Length != 5 {
 		t.Error("First operation should be Retain(5)")
 	}
-	if cs.operations[1].OpType != OpDelete || cs.operations[1].Length != 6 {
+	if optimized.operations[1].OpType != OpDelete || optimized.operations[1].Length != 6 {
 		t.Error("Second operation should be Delete(6)")
 	}
-	if cs.operations[2].OpType != OpInsert || cs.operations[2].Text != "abc" {
+	if optimized.operations[2].OpType != OpInsert || optimized.operations[2].Text != "abc" {
 		t.Error("Third operation should be Insert(\"abc\")")
 	}
 }
