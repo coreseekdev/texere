@@ -581,24 +581,23 @@ func TestIterator_Seek(t *testing.T) {
 	r := New("Hello World")
 	it := r.IteratorAt(6)
 
-	// IteratorAt(6) positions us at character 6, so Current() returns 'W'
+	// IteratorAt(6) positions us so Next() will return character at position 6
 	assert.Equal(t, 6, it.Position())
+
+	// Call Next() to get the character
+	it.Next()
 	assert.Equal(t, 'W', it.Current())
-
-	// Next() advances position but stays on current character
-	// (because IteratorAt already positioned us on the character)
-	it.Next()
 	assert.Equal(t, 7, it.Position())
-	assert.Equal(t, 'W', it.Current())  // Still 'W' because Next() didn't advance runePos
 
-	// Advance again to actually move to next character
+	// Next() advances to next character
 	it.Next()
-	assert.Equal(t, 8, it.Position())
 	assert.Equal(t, 'o', it.Current())
+	assert.Equal(t, 8, it.Position())
 
 	// Seek(0) positions us at character 0
 	it.Seek(0)
 	assert.Equal(t, 0, it.Position())
+	it.Next()
 	assert.Equal(t, 'H', it.Current())
 }
 
@@ -619,18 +618,16 @@ func TestIterator_Skip(t *testing.T) {
 	skipped := it.Skip(6)
 	assert.Equal(t, 6, skipped)
 	assert.Equal(t, 6, it.Position())
-	// Skip(6) positions us at character 6
-	assert.Equal(t, 'W', it.Current())
 
-	// Next() advances position but stays on current character
+	// Call Next() to get character at position 6
 	it.Next()
+	assert.Equal(t, 'W', it.Current())
 	assert.Equal(t, 7, it.Position())
-	assert.Equal(t, 'W', it.Current())
 
-	// Advance again to actually move to next character
+	// Next() advances to next character
 	it.Next()
-	assert.Equal(t, 8, it.Position())
 	assert.Equal(t, 'o', it.Current())
+	assert.Equal(t, 8, it.Position())
 }
 
 func TestIterator_Collect(t *testing.T) {
@@ -638,7 +635,8 @@ func TestIterator_Collect(t *testing.T) {
 	it := r.IteratorAt(6)
 
 	collected := it.Collect()
-	assert.Equal(t, "World", collected)
+	// Should collect from position 6 onwards: "World"
+	assert.Equal(t, "World", string(collected))
 }
 
 // ========== ForEach Tests ==========

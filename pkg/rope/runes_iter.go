@@ -5,13 +5,19 @@ import "unicode/utf8"
 // ========== Rune Iterator ==========
 
 // Iterator iterates over runes in a rope.
+//
+// Semantics:
+// - charPos: position of the last rune returned by Next() (-1 if none)
+// - Position(): returns charPos + 1 (the next rune to be returned)
+// - Current(): returns the rune most recently returned by Next()
 type Iterator struct {
-	rope       *Rope
-	chunksIter *ChunksIterator
+	rope        *Rope
+	chunksIter  *ChunksIterator
 	currentChunk string
 	chunkPos    int // Position within current chunk (in bytes)
-	charPos    int // Current character position in rope
-	exhausted  bool
+	charPos     int // Position of last returned rune (-1 if none)
+	currentRune rune // Current rune (valid after Next() returns true)
+	exhausted   bool
 }
 
 // NewIterator creates a new iterator starting from the beginning of the rope.
@@ -23,13 +29,15 @@ func (r *Rope) NewIterator() *Iterator {
 	it := &Iterator{
 		rope:       r,
 		chunksIter: r.Chunks(),
-		charPos:    -1, // Will be set to 0 on first Next()
+		charPos:    -1, // No rune returned yet
+		currentRune: 0,
 		exhausted:  false,
 	}
 	return it
 }
 
 // IteratorAt creates a new iterator starting at the specified character position.
+// The iterator is positioned so that the first Next() call will return the rune at position pos.
 func (r *Rope) IteratorAt(pos int) *Iterator {
 	if r == nil || r.Length() == 0 {
 		return &Iterator{rope: r, exhausted: true}
@@ -45,15 +53,13 @@ func (r *Rope) IteratorAt(pos int) *Iterator {
 	it := &Iterator{
 		rope:       r,
 		chunksIter: r.Chunks(),
-		charPos:    pos - 1, // Will be incremented to pos on first Next()
+		charPos:    pos - 1, // Will become pos after first Next()
+		currentRune: 0,
 		exhausted:  false,
 	}
 
-	// Position the iterator at the correct character
-	// First move to the chunk containing the target position
-	targetCharIdx := pos
-
 	// Find and load the chunk containing the target position
+	targetCharIdx := pos
 	currentCharIdx := 0
 	found := false
 
@@ -92,54 +98,46 @@ func (it *Iterator) Next() bool {
 		return false
 	}
 
-	it.charPos++
-
-	// If we have a current chunk, try to advance within it
-	if it.currentChunk != "" {
-		if it.chunkPos < len(it.currentChunk) {
-			// Advance to next rune in current chunk
-			_, size := utf8.DecodeRuneInString(it.currentChunk[it.chunkPos:])
-			it.chunkPos += size
-
-			if it.chunkPos <= len(it.currentChunk) {
-				return true
-			}
+	// If we don't have a current chunk, get the first one
+	if it.currentChunk == "" {
+		if !it.chunksIter.Next() {
+			it.exhausted = true
+			return false
 		}
-
-		// Need to move to next chunk
-		it.currentChunk = ""
-		it.chunkPos = 0
-	}
-
-	// Try to get next chunk
-	if it.chunksIter.Next() {
 		it.currentChunk = it.chunksIter.Current()
 		it.chunkPos = 0
-
-		// Move to first rune in the new chunk
-		if it.chunkPos < len(it.currentChunk) {
-			return true
-		}
 	}
 
-	// No more chunks or runes
-	it.exhausted = true
-	return false
+	// Check if we've exhausted the current chunk
+	if it.chunkPos >= len(it.currentChunk) {
+		// Move to next chunk
+		it.currentChunk = ""
+		it.chunkPos = 0
+		return it.Next()
+	}
+
+	// Decode the next rune
+	r, size := utf8.DecodeRuneInString(it.currentChunk[it.chunkPos:])
+	it.currentRune = r
+	it.chunkPos += size
+	it.charPos++
+
+	return true
 }
 
 // Current returns the current rune.
+// Panics if Next() hasn't been called yet or the iterator is exhausted.
 func (it *Iterator) Current() rune {
-	if it.currentChunk == "" || it.chunkPos >= len(it.currentChunk) {
+	if it.currentRune == 0 {
 		panic("iterator not positioned on a rune")
 	}
-
-	r, _ := utf8.DecodeRuneInString(it.currentChunk[it.chunkPos:])
-	return r
+	return it.currentRune
 }
 
-// Position returns the current character position in the rope.
+// Position returns the character position of the next rune to be returned.
+// Consistently returns charPos + 1.
 func (it *Iterator) Position() int {
-	return it.charPos
+	return it.charPos + 1
 }
 
 // Reset resets the iterator to the beginning of the rope.
@@ -153,6 +151,7 @@ func (it *Iterator) Reset() {
 	it.currentChunk = ""
 	it.chunkPos = 0
 	it.charPos = -1
+	it.currentRune = 0
 	it.exhausted = false
 }
 
@@ -183,7 +182,6 @@ func (it *Iterator) HasNext() bool {
 	}
 
 	// Check if there are more chunks
-	// We need to peek without advancing
 	return it.chunksIter.Position() + 1 < it.chunksIter.Count()
 }
 
@@ -243,6 +241,7 @@ func (it *Iterator) Peek() (rune, bool) {
 	oldChunkPos := it.chunkPos
 	oldCharPos := it.charPos
 	oldExhausted := it.exhausted
+	oldCurrentRune := it.currentRune
 
 	// Advance to next
 	hasNext := it.Next()
@@ -258,8 +257,9 @@ func (it *Iterator) Peek() (rune, bool) {
 	it.chunkPos = oldChunkPos
 	it.charPos = oldCharPos
 	it.exhausted = oldExhausted
+	it.currentRune = oldCurrentRune
 
-	return r, hasNext && !oldExhausted
+	return r, hasNext
 }
 
 // Skip advances the iterator by n runes.

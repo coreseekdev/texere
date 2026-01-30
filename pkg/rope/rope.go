@@ -205,6 +205,7 @@ func (r *Rope) CharAt(pos int) rune {
 	}
 	// Use optimized iterator instead of []rune conversion
 	it := r.IteratorAt(pos)
+	it.Next() // Advance to the target position
 	return it.Current()
 }
 
@@ -509,7 +510,9 @@ func (r *Rope) ForEachWithIndex(f func(int, rune)) {
 
 	it := r.NewIterator()
 	for it.Next() {
-		f(it.Position(), it.Current())
+		// Position() returns charPos + 1 (next position)
+		// We want the current element's index, so subtract 1
+		f(it.Position() - 1, it.Current())
 	}
 }
 

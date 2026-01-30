@@ -69,6 +69,8 @@ func (r *Rope) LineStart(lineNum int) int {
 		if it.Current() == '\n' {
 			currentLine++
 			if currentLine == lineNum {
+				// Return position AFTER the newline
+				// Position() returns charPos + 1, which is after the newline
 				return it.Position()
 			}
 		}
