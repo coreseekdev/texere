@@ -254,3 +254,64 @@ func (r Range) Overlaps(other Range) bool {
 	return r.From() < other.To() && r.To() > other.From()
 }
 
+// ========== Position Mapping Integration ==========
+
+// MapPositions maps all cursor positions in the selection through a changeset.
+// Returns a new selection with all positions mapped.
+func (s *Selection) MapPositions(cs *ChangeSet) *Selection {
+	if s == nil || len(s.ranges) == 0 {
+		return s
+	}
+
+	positions := s.GetPositions()
+	assocs := s.GetAssociations()
+
+	mapped := MapPositionsOptimized(cs, positions, assocs)
+
+	return s.FromPositions(mapped)
+}
+
+// GetPositions returns all cursor positions from the selection ranges.
+// Uses the Cursor() method for each range, which represents the actual cursor position.
+func (s *Selection) GetPositions() []int {
+	positions := make([]int, len(s.ranges))
+	for i, r := range s.ranges {
+		positions[i] = r.Cursor()
+	}
+	return positions
+}
+
+// GetAssociations returns default associations for all positions.
+// Currently returns AssocBefore for all positions.
+func (s *Selection) GetAssociations() []Assoc {
+	assocs := make([]Assoc, len(s.ranges))
+	for i := range assocs {
+		assocs[i] = AssocBefore
+	}
+	return assocs
+}
+
+// FromPositions creates a new selection from a slice of positions.
+// Each position becomes a single-point cursor (Range with Anchor == Head).
+// Preserves the primary index from the original selection.
+func (s *Selection) FromPositions(positions []int) *Selection {
+	if len(positions) == 0 {
+		return NewSelection(Point(0))
+	}
+
+	newRanges := make([]Range, len(positions))
+	for i, pos := range positions {
+		newRanges[i] = Point(pos)
+	}
+
+	primaryIdx := s.primaryIndex
+	if primaryIdx >= len(newRanges) {
+		primaryIdx = 0
+	}
+
+	return &Selection{
+		ranges:       newRanges,
+		primaryIndex: primaryIdx,
+	}
+}
+

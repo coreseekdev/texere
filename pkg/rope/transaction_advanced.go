@@ -1,6 +1,7 @@
 package rope
 
 import (
+	"sort"
 	"time"
 )
 
@@ -136,6 +137,53 @@ func (pm *PositionMapper) Map() []int {
 	}
 
 	return pm.mapUnsorted()
+}
+
+// MapOptimized always uses the fast path by auto-sorting positions.
+// Returns the same results as Map() but guarantees O(N+M) performance.
+func (pm *PositionMapper) MapOptimized() []int {
+	if len(pm.positions) == 0 {
+		return []int{}
+	}
+
+	// Auto-sort if not already sorted
+	if !pm.isSorted() {
+		pm.sortPositions()
+	}
+
+	return pm.mapSorted()
+}
+
+// sortPositions sorts positions along with their associations using stable sort.
+// Stable sort maintains the relative order of positions with equal values.
+func (pm *PositionMapper) sortPositions() {
+	sort.SliceStable(pm.positions, func(i, j int) bool {
+		return pm.positions[i].Pos < pm.positions[j].Pos
+	})
+}
+
+// AddPositions adds multiple positions at once with their associations.
+// Returns the mapper for method chaining.
+func (pm *PositionMapper) AddPositions(positions []int, assocs []Assoc) *PositionMapper {
+	for i, pos := range positions {
+		assoc := AssocBefore
+		if i < len(assocs) {
+			assoc = assocs[i]
+		}
+		pm.positions = append(pm.positions, &Position{
+			Pos:   pos,
+			Assoc: assoc,
+		})
+	}
+	return pm
+}
+
+// MapPositionsOptimized is a convenience function for batch position mapping.
+// Automatically sorts positions for optimal O(N+M) performance.
+func MapPositionsOptimized(cs *ChangeSet, positions []int, assocs []Assoc) []int {
+	mapper := NewPositionMapper(cs)
+	mapper.AddPositions(positions, assocs)
+	return mapper.MapOptimized()
 }
 
 // isSorted checks if positions are sorted in ascending order.
