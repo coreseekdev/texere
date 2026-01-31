@@ -210,22 +210,28 @@ Added adapter functions for use with for-range loops:
 
 **Note:** Named interfaces "Seq" instead of "Iterator" to avoid conflict with existing `Iterator` type.
 
-### API Naming Consistency
-**Reason:** Minor inconsistencies, not critical
+### 12. API Naming Consistency ✅
+**Status:** COMPLETED
 
-Some naming patterns could be more consistent:
-- `Length()` vs `Size()` (deprecated Size() in favor of LengthBytes())
-- `LengthChars()` vs `Length()` (both return chars, Length() is primary)
-- `CharAt()` vs `RuneAt()` (both exist, CharAt is primary)
+Audited all method names for consistency and added deprecation notices:
 
-**Future Work:**
-1. Audit all method names for consistency
-2. Document naming conventions:
-   - `*At(pos)` methods for position-based access
-   - `*Bytes()` for byte-based operations
-   - `*Chars()` or `*Char*()` for character/rune operations
-   - `*Graphemes()` for grapheme cluster operations
-3. Add alias methods for deprecated names to maintain backward compatibility
+**Deprecated Methods:**
+- `Size()` → Use `LengthBytes()` instead
+- `ToRunes()` → Use `Runes()` instead
+- `InsertCharAt()` → Use `InsertChar()` instead
+- `RemoveChar()` → Use `DeleteChar()` instead (for consistency with Delete operations)
+- `GraphemeIterator.ToSlice()` → Use `GraphemeIterator.Collect()` instead
+
+**Naming Improvements:**
+- Inverted `DeleteChar`/`RemoveChar` relationship:
+  - `DeleteChar` is now the primary implementation (directly calls `Delete`)
+  - `RemoveChar` is now the deprecated alias (calls `DeleteChar`)
+  - This follows the naming convention: deletion operations use `Delete*()`
+
+**Documentation Updates:**
+- Updated `pkg/rope/naming.go` with complete list of deprecated methods
+- Added deprecation notices to all alias methods with clear guidance on alternatives
+- All deprecated methods maintain backward compatibility
 
 ### Performance Optimization Opportunities
 **Reason:** Code already has optimizations, these are future enhancements
