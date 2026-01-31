@@ -4,9 +4,8 @@ This guide will help you get started with the Concordia OT library in 5 minutes.
 
 ## Installation
 
-The library is already part of the Texere project at:
-```
-S:/workspace/texere-ot/pkg/concordia
+```bash
+go get github.com/texere-ot
 ```
 
 ## Your First OT Operation
@@ -133,7 +132,7 @@ op := builder.Build()
 ### Pattern 2: Applying Operations to Documents
 
 ```go
-import "github.com/coreseekdev/texere/pkg/document"
+import "github.com/texere-ot/pkg/document"
 
 // Using string (simple)
 doc := "Hello World"
@@ -189,9 +188,6 @@ doc, _ = client.ApplyServer(revision, remoteOp)
 The library includes comprehensive tests. Run them:
 
 ```bash
-# Navigate to project
-cd S:/workspace/texere-ot
-
 # Run all tests
 go test ./pkg/concordia/... -v
 

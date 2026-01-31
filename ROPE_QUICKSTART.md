@@ -6,11 +6,8 @@ This guide will help you get started with the Rope data structure implementation
 
 ## Installation
 
-The Rope package is located at `S:/workspace/texere-rope/pkg/rope`.
-
 ```bash
-cd S:/workspace/texere-rope
-go mod tidy
+go get github.com/texere-ot
 ```
 
 ## Your First Rope
@@ -22,7 +19,7 @@ package main
 
 import (
     "fmt"
-    "github.com/texere-rope/pkg/rope"
+    "github.com/texere-ot/pkg/rope"
 )
 
 func main() {
