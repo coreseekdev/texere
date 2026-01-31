@@ -14,24 +14,30 @@ func (r *Rope) InsertChar(pos int, ch rune) (*Rope, error) {
 }
 
 // InsertCharAt is an alias for InsertChar.
+// Deprecated: Use InsertChar() for consistency with other character operations.
+// This method is kept for backward compatibility.
 func (r *Rope) InsertCharAt(pos int, ch rune) (*Rope, error) {
 	return r.InsertChar(pos, ch)
 }
 
 // RemoveChar removes a single character at the specified position.
+// Deprecated: Use DeleteChar() instead for consistency with Delete operations.
 // Returns a new Rope, leaving the original unchanged.
 //
 // This is equivalent to Delete(pos, pos+1).
 func (r *Rope) RemoveChar(pos int) (*Rope, error) {
+	return r.DeleteChar(pos)
+}
+
+// DeleteChar removes a single character at the specified position.
+// Returns a new Rope, leaving the original unchanged.
+//
+// This is equivalent to Delete(pos, pos+1).
+func (r *Rope) DeleteChar(pos int) (*Rope, error) {
 	if r == nil {
 		return nil, nil
 	}
 	return r.Delete(pos, pos+1)
-}
-
-// DeleteChar is an alias for RemoveChar.
-func (r *Rope) DeleteChar(pos int) (*Rope, error) {
-	return r.RemoveChar(pos)
 }
 
 // ========== Character Replacement ==========
@@ -211,7 +217,9 @@ func (r *Rope) CollectChars() []rune {
 	return runes
 }
 
-// ToRunes is an alias for CollectChars.
+// ToRunes returns all runes in the rope as a slice.
+// Deprecated: Use Runes() instead. This method is kept for backward compatibility.
+// The behavior is identical to Runes(), but Runes() is the preferred name.
 func (r *Rope) ToRunes() []rune {
 	return r.CollectChars()
 }

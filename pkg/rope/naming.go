@@ -86,6 +86,9 @@ API NAMING CONVENTIONS
 DEPRECATED NAMES (use alternatives instead)
     - Size() → Use LengthBytes() instead
     - ToRunes() → Use Runes() instead (kept for compatibility)
+    - InsertCharAt() → Use InsertChar() instead
+    - RemoveChar() → Use DeleteChar() instead (for consistency with Delete operations)
+    - GraphemeIterator.ToSlice() → Use GraphemeIterator.Collect() instead
 
 ERROR HANDLING CONVENTIONS
 --------------------------

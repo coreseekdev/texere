@@ -118,7 +118,9 @@ func (it *GraphemeIterator) Collect() []Grapheme {
 	return graphemes
 }
 
-// ToSlice is an alias for Collect.
+// ToSlice collects all remaining graphemes into a slice.
+// Deprecated: Use Collect() instead for consistency with iterator interfaces.
+// This method is kept for backward compatibility.
 func (it *GraphemeIterator) ToSlice() []Grapheme {
 	return it.Collect()
 }
