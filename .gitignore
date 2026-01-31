@@ -1,0 +1,34 @@
+# Test binaries
+*.test
+*.test.exe
+
+# Coverage files
+coverage.out
+coverage*.out
+*.out
+
+# Profiling files
+*.prof
+cpu.prof
+mem.prof
+
+# Go build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+test_*.go
+!pkg/rope/*_test.go
