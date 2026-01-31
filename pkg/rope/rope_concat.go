@@ -155,12 +155,33 @@ func (r *Rope) AppendStr(text string) *Rope {
 }
 
 // PrependStr prepends a string to the beginning of the rope.
+// Uses optimized implementation that directly creates a node instead of Insert().
 // Returns a new Rope, leaving the original unchanged.
 func (r *Rope) PrependStr(text string) *Rope {
 	if r == nil {
 		return New(text)
 	}
-	return r.Insert(0, text)
+	if text == "" {
+		return r
+	}
+	if r.length == 0 {
+		return New(text)
+	}
+
+	// Optimized: Create rope from text and prepend it directly
+	// This is faster than Insert(0, text) which needs to traverse the tree
+	textRope := New(text)
+
+	return &Rope{
+		root: &InternalNode{
+			left:   textRope.root,
+			right:  r.root,
+			length: textRope.Length(),
+			size:   textRope.Size(),
+		},
+		length: r.length + utf8.RuneCountInString(text),
+		size:   r.size + len(text),
+	}
 }
 
 // Append appends a string to the end of the rope.

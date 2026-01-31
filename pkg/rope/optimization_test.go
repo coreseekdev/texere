@@ -8,30 +8,8 @@ import (
 
 // ========== Optimization Comparison Tests ==========
 
-// BenchmarkString_Old vs New
-func BenchmarkString_Old(b *testing.B) {
-	r := New(strings.Repeat("Hello, World! ", 1000))
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = r.StringOld()
-	}
-}
-
-func BenchmarkString_New(b *testing.B) {
-	r := New(strings.Repeat("Hello, World! ", 1000))
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = r.String()
-	}
-}
-
-func BenchmarkString_Bytes(b *testing.B) {
-	r := New(strings.Repeat("Hello, World! ", 1000))
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = r.StringBytes()
-	}
-}
+// BenchmarkString_Old removed - old implementation deleted
+// BenchmarkString_New and BenchmarkString_Bytes removed - same as String()
 
 // ========== Append Comparison ==========
 
@@ -49,7 +27,7 @@ func BenchmarkAppend_New(b *testing.B) {
 	text := " Appended"
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.AppendOptimized(text)
+		_ = r.Append(text) // Same as Old now
 	}
 }
 
@@ -100,37 +78,35 @@ func TestOptimizationComparison(t *testing.T) {
 	text := strings.Repeat("Hello, World! ", 100)
 	r := New(text)
 
-	// Test String()
-	oldStr := r.StringOld()
-	newStr := r.String()
-	byteStr := r.StringBytes()
+	// Test String() - all implementations merged
+	str1 := r.String()
+	str2 := r.String()
 
-	if oldStr != newStr || newStr != byteStr {
-		t.Errorf("String implementations differ!\nOld: %q\nNew: %q\nBytes: %q",
-			oldStr[:100], newStr[:100], byteStr[:100])
+	if str1 != str2 {
+		t.Errorf("String() inconsistent!")
 	}
 
-	// Test Append
-	oldAppend := r.Append(" Appended")
-	newAppend := r.AppendOptimized(" Appended")
+	// Test Append - AppendOptimized merged into Append
+	append1 := r.Append(" Appended")
+	append2 := r.Append(" Appended")
 
-	if oldAppend.String() != newAppend.String() {
+	if append1.String() != append2.String() {
 		t.Error("Append implementations differ!")
 	}
 
-	// Test Insert
-	oldInsert := r.Insert(500, "X")
-	newInsert := r.InsertOptimized(500, "X")
+	// Test Insert - InsertOptimized kept separate
+	insert1 := r.Insert(500, "X")
+	insert2 := r.InsertOptimized(500, "X")
 
-	if oldInsert.String() != newInsert.String() {
+	if insert1.String() != insert2.String() {
 		t.Error("Insert implementations differ!")
 	}
 
-	// Test Delete
-	oldDelete := r.Delete(100, 200)
-	newDelete := r.DeleteOptimized(100, 200)
+	// Test Delete - DeleteOptimized kept separate
+	delete1 := r.Delete(100, 200)
+	delete2 := r.DeleteOptimized(100, 200)
 
-	if oldDelete.String() != newDelete.String() {
+	if delete1.String() != delete2.String() {
 		t.Error("Delete implementations differ!")
 	}
 
@@ -139,65 +115,37 @@ func TestOptimizationComparison(t *testing.T) {
 
 // ========== Memory Allocation Tests ==========
 
-func TestMemory_String(t *testing.T) {
-	r := New(strings.Repeat("Hello, World! ", 1000))
+// TestMemory_String and TestMemory_Append removed - implementations merged
+// TestMemory_Delete kept for comparison (Delete vs DeleteOptimized)
 
-	// Test old implementation
+func TestMemory_Delete(t *testing.T) {
+	text := strings.Repeat("Hello, World! ", 100)
+
 	var m1, m2 runtime.MemStats
 	runtime.GC()
 	runtime.ReadMemStats(&m1)
 
+	r := New(text)
 	for i := 0; i < 100; i++ {
-		_ = r.StringOld()
+		r = r.Delete(10, 20)
 	}
 
 	runtime.ReadMemStats(&m2)
 	oldAlloc := m2.TotalAlloc - m1.TotalAlloc
 
-	// Test new implementation
+	// Test optimized implementation
 	runtime.GC()
 	runtime.ReadMemStats(&m1)
 
+	r2 := New(text)
 	for i := 0; i < 100; i++ {
-		_ = r.String()
+		r2 = r2.DeleteOptimized(10, 20)
 	}
 
 	runtime.ReadMemStats(&m2)
 	newAlloc := m2.TotalAlloc - m1.TotalAlloc
 
-	t.Logf("String() - Old: %d bytes, New: %d bytes, Improvement: %.1fx",
-		oldAlloc, newAlloc, float64(oldAlloc)/float64(newAlloc))
-}
-
-func TestMemory_Append(t *testing.T) {
-	r := New(strings.Repeat("Hello, World! ", 100))
-	text := " Appended"
-
-	// Test old implementation
-	var m1, m2 runtime.MemStats
-	runtime.GC()
-	runtime.ReadMemStats(&m1)
-
-	for i := 0; i < 100; i++ {
-		r = r.Append(text)
-	}
-
-	runtime.ReadMemStats(&m2)
-	oldAlloc := m2.TotalAlloc - m1.TotalAlloc
-
-	// Test new implementation
-	r2 := New(strings.Repeat("Hello, World! ", 100))
-	runtime.GC()
-	runtime.ReadMemStats(&m1)
-
-	for i := 0; i < 100; i++ {
-		r2 = r2.AppendOptimized(text)
-	}
-
-	runtime.ReadMemStats(&m2)
-	newAlloc := m2.TotalAlloc - m1.TotalAlloc
-
-	t.Logf("Append() - Old: %d bytes, New: %d bytes, Improvement: %.1fx",
+	t.Logf("Delete() - Standard: %d bytes, Optimized: %d bytes, Improvement: %.1fx",
 		oldAlloc, newAlloc, float64(oldAlloc)/float64(newAlloc))
 }
 

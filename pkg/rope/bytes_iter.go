@@ -238,6 +238,7 @@ func (r *Rope) BytesIteratorAt(byteIdx int) *BytesIterator {
 		exhausted:  false,
 	}
 	it.loadLeafAtByte(byteIdx)
+	it.leafBytePos-- // Adjust so Next() moves to byteIdx
 	return it
 }
 
@@ -256,7 +257,8 @@ func (it *BytesIterator) Seek(byteIdx int) bool {
 
 	it.bytePos = byteIdx - 1 // Next() will move to byteIdx
 	it.exhausted = false
-	it.loadLeafAtByte(byteIdx - 1) // Load leaf at byteIdx-1 so Next() moves to byteIdx
+	it.loadLeafAtByte(byteIdx)
+	it.leafBytePos-- // Adjust so Next() moves to byteIdx
 	return true
 }
 

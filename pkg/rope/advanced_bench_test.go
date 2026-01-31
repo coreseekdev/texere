@@ -6,20 +6,7 @@ import (
 	"testing"
 )
 
-// ========== Zero-Allocation Benchmarks ==========
-
-// BenchmarkInsert_ZeroAlloc compares zero-allocation insert vs standard.
-func BenchmarkInsert_ZeroAlloc(b *testing.B) {
-	text := strings.Repeat("Hello, World! ", 100)
-	r := New(text)
-	pos := r.Length() / 2
-	insertText := "INSERTED"
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = r.InsertZeroAlloc(pos, insertText)
-	}
-}
+// ========== Insert Benchmarks ==========
 
 // BenchmarkInsert_Standard for comparison.
 func BenchmarkInsert_Standard(b *testing.B) {
@@ -49,16 +36,6 @@ func BenchmarkInsert_Optimized(b *testing.B) {
 
 // ========== Delete Benchmarks ==========
 
-func BenchmarkDelete_ZeroAlloc(b *testing.B) {
-	text := strings.Repeat("Hello, World! ", 100)
-	r := New(text)
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = r.DeleteZeroAlloc(10, 20)
-	}
-}
-
 func BenchmarkDelete_Standard(b *testing.B) {
 	text := strings.Repeat("Hello, World! ", 100)
 	r := New(text)
@@ -79,43 +56,7 @@ func BenchmarkDelete_Optimized(b *testing.B) {
 	}
 }
 
-// ========== Append/Prepend Benchmarks ==========
-
-func BenchmarkAppend_ZeroAlloc(b *testing.B) {
-	text := strings.Repeat("Hello, World! ", 100)
-	r := New(text)
-	appendText := " Appended"
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = r.AppendZeroAlloc(appendText)
-	}
-}
-
-func BenchmarkPrepend_ZeroAlloc(b *testing.B) {
-	text := strings.Repeat("Hello, World! ", 100)
-	r := New(text)
-	prependText := "Prepended "
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = r.PrependZeroAlloc(prependText)
-	}
-}
-
 // ========== Mixed Operation Benchmarks ==========
-
-func BenchmarkMixedOps_ZeroAlloc(b *testing.B) {
-	text := strings.Repeat("Hello, World! ", 100)
-	r := New(text)
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		r = r.AppendZeroAlloc(" X")
-		r = r.InsertZeroAlloc(r.Length()/2, " Y")
-		r = r.DeleteZeroAlloc(0, 1)
-	}
-}
 
 func BenchmarkMixedOps_Standard(b *testing.B) {
 	text := strings.Repeat("Hello, World! ", 100)
@@ -131,16 +72,6 @@ func BenchmarkMixedOps_Standard(b *testing.B) {
 
 // ========== Sequential Operations ==========
 
-func BenchmarkSequentialInserts_ZeroAlloc(b *testing.B) {
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		r := New("")
-		for j := 0; j < 100; j++ {
-			r = r.AppendZeroAlloc(fmt.Sprintf("Item %d ", j))
-		}
-	}
-}
-
 func BenchmarkSequentialInserts_Standard(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -153,18 +84,6 @@ func BenchmarkSequentialInserts_Standard(b *testing.B) {
 
 // ========== Large Text Benchmarks ==========
 
-func BenchmarkInsert_Large_ZeroAlloc(b *testing.B) {
-	text := strings.Repeat("Hello, World! ", 1000) // ~26KB
-	r := New(text)
-	pos := r.Length() / 2
-	insertText := strings.Repeat("X", 1000) // 1KB insert
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = r.InsertZeroAlloc(pos, insertText)
-	}
-}
-
 func BenchmarkInsert_Large_Standard(b *testing.B) {
 	text := strings.Repeat("Hello, World! ", 1000) // ~26KB
 	r := New(text)
@@ -174,32 +93,6 @@ func BenchmarkInsert_Large_Standard(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = r.Insert(pos, insertText)
-	}
-}
-
-// ========== Byte Position Cache Benchmarks ==========
-
-func BenchmarkByteCache_SingleLookup(b *testing.B) {
-	text := strings.Repeat("Hello, World! ", 100)
-	cache := NewBytePosCache(text)
-	pos := 50
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = cache.GetBytePos(pos)
-	}
-}
-
-func BenchmarkByteCache_MultipleLookups(b *testing.B) {
-	text := strings.Repeat("Hello, World! ", 100)
-	cache := NewBytePosCache(text)
-	positions := []int{10, 20, 30, 40, 50, 60, 70, 80, 90, 100}
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		for _, pos := range positions {
-			_ = cache.GetBytePos(pos)
-		}
 	}
 }
 
@@ -271,17 +164,6 @@ func BenchmarkRebalance_Unbalanced(b *testing.B) {
 
 // ========== Memory Allocation Benchmarks ==========
 
-func BenchmarkAllocations_InsertZeroAlloc(b *testing.B) {
-	text := strings.Repeat("Hello, World! ", 100)
-	r := New(text)
-	b.ReportAllocs()
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		r = r.InsertZeroAlloc(r.Length()/2, "X")
-	}
-}
-
 func BenchmarkAllocations_InsertStandard(b *testing.B) {
 	text := strings.Repeat("Hello, World! ", 100)
 	r := New(text)
@@ -290,17 +172,6 @@ func BenchmarkAllocations_InsertStandard(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		r = r.Insert(r.Length()/2, "X")
-	}
-}
-
-func BenchmarkAllocations_DeleteZeroAlloc(b *testing.B) {
-	text := strings.Repeat("Hello, World! ", 100)
-	b.ReportAllocs()
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		r := New(text)
-		r = r.DeleteZeroAlloc(10, 20)
 	}
 }
 
@@ -323,28 +194,25 @@ func TestCompareImplementations(t *testing.T) {
 	// Test Insert
 	r1 := New(text).Insert(50, "INSERTED")
 	r2 := New(text).InsertOptimized(50, "INSERTED")
-	r3 := New(text).InsertZeroAlloc(50, "INSERTED")
 
-	if r1.String() != r2.String() || r2.String() != r3.String() {
+	if r1.String() != r2.String() {
 		t.Error("Insert implementations differ")
 	}
 
 	// Test Delete
 	r1 = New(text).Delete(10, 20)
 	r2 = New(text).DeleteOptimized(10, 20)
-	r3 = New(text).DeleteZeroAlloc(10, 20)
 
-	if r1.String() != r2.String() || r2.String() != r3.String() {
+	if r1.String() != r2.String() {
 		t.Error("Delete implementations differ")
 	}
 
 	// Test Append
 	r1 = New(text).Append("APPENDED")
-	r2 = New(text).AppendOptimized("APPENDED")
-	r3 = New(text).AppendZeroAlloc("APPENDED")
+	result := r1.String()
 
-	if r1.String() != r2.String() || r2.String() != r3.String() {
-		t.Error("Append implementations differ")
+	if !strings.HasSuffix(result, "APPENDED") {
+		t.Error("Append failed to add text at end")
 	}
 
 	t.Log("All implementations produce identical results ✓")
@@ -355,7 +223,7 @@ func TestCompareImplementations(t *testing.T) {
 func TestStress_ManyInserts(t *testing.T) {
 	r := New("")
 	for i := 0; i < 1000; i++ {
-		r = r.InsertZeroAlloc(i, fmt.Sprintf("%d", i%10))
+		r = r.Insert(i, fmt.Sprintf("%d", i%10))
 	}
 	expectedLen := 1000
 	if r.Length() != expectedLen {
@@ -372,7 +240,7 @@ func TestStress_ManyDeletes(t *testing.T) {
 
 	// Delete from beginning
 	for i := 0; i < 500; i++ {
-		r = r.DeleteZeroAlloc(0, 1)
+		r = r.Delete(0, 1)
 	}
 
 	if r.Length() != 500 {

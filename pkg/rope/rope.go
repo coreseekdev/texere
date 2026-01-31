@@ -159,22 +159,22 @@ func (r *Rope) Size() int {
 }
 
 // String returns the complete content as a string.
+// Uses optimized byte slice building for minimal allocations.
 func (r *Rope) String() string {
 	if r == nil || r.length == 0 {
 		return ""
 	}
 
-	// Use strings.Builder with pre-allocated capacity
-	var b strings.Builder
-	b.Grow(r.size)
+	// Pre-allocate with exact size and build using byte slice
+	// This is faster than strings.Builder for this use case
+	result := make([]byte, 0, r.size)
 
-	// Iterate chunks directly for efficiency
 	it := r.Chunks()
 	for it.Next() {
-		b.WriteString(it.Current())
+		result = append(result, it.Current()...)
 	}
 
-	return b.String()
+	return string(result)
 }
 
 // Bytes returns the complete content as a byte slice.

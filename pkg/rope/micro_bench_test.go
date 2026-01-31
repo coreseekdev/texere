@@ -122,9 +122,9 @@ func BenchmarkCompare_InsertFast_vs_Standard(b *testing.B) {
 		}
 	})
 
-	b.Run("ZeroAlloc", func(b *testing.B) {
+	b.Run("Optimized", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_ = r.InsertZeroAlloc(pos, insertText)
+			_ = r.InsertOptimized(pos, insertText)
 		}
 	})
 }
@@ -145,9 +145,9 @@ func BenchmarkCompare_DeleteFast_vs_Standard(b *testing.B) {
 		}
 	})
 
-	b.Run("ZeroAlloc", func(b *testing.B) {
+	b.Run("Optimized", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_ = r.DeleteZeroAlloc(10, 20)
+			_ = r.DeleteOptimized(10, 20)
 		}
 	})
 }
@@ -247,70 +247,54 @@ func BenchmarkBatchDelete_Small(b *testing.B) {
 	}
 }
 
-// ========== StringFast Benchmarks ==========
+// ========== String Benchmarks ==========
 
-func BenchmarkStringFast_Small(b *testing.B) {
+func BenchmarkString_Small(b *testing.B) {
 	r := New("Hello, World!")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.StringFast()
+		_ = r.String()
 	}
 }
 
-func BenchmarkStringFast_Medium(b *testing.B) {
+func BenchmarkString_Medium(b *testing.B) {
 	r := New(strings.Repeat("Hello, World! ", 100))
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.StringFast()
+		_ = r.String()
 	}
 }
 
-func BenchmarkStringFast_Large(b *testing.B) {
+func BenchmarkString_Large(b *testing.B) {
 	r := New(strings.Repeat("Hello, World! ", 1000))
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.StringFast()
+		_ = r.String()
 	}
-}
-
-func BenchmarkCompare_StringFast_vs_Standard(b *testing.B) {
-	r := New(strings.Repeat("Hello, World! ", 100))
-
-	b.Run("Fast", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			_ = r.StringFast()
-		}
-	})
-
-	b.Run("Standard", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			_ = r.String()
-		}
-	})
 }
 
 // ========== Micro-Operation Benchmarks ==========
 
-func BenchmarkAppendFast_ASCII(b *testing.B) {
+func BenchmarkAppend_ASCII(b *testing.B) {
 	r := New("Hello")
 	text := " World"
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.AppendFast(text)
+		_ = r.Append(text)
 	}
 }
 
-func BenchmarkPrependFast_ASCII(b *testing.B) {
+func BenchmarkPrepend_ASCII(b *testing.B) {
 	r := New("World")
 	text := "Hello "
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.PrependFast(text)
+		_ = r.Prepend(text)
 	}
 }
 
@@ -381,19 +365,19 @@ func TestFastPaths_Correctness(t *testing.T) {
 		t.Errorf("SliceFast failed: got %q, want %q", sliceResult, expectedSlice)
 	}
 
-	// Test AppendFast
+	// Test Append
 	r2 := New("Hello, World!")
-	result = r2.AppendFast("!")
+	result = r2.Append("!")
 	expected = "Hello, World!!"
 	if result.String() != expected {
-		t.Errorf("AppendFast failed: got %q, want %q", result.String(), expected)
+		t.Errorf("Append failed: got %q, want %q", result.String(), expected)
 	}
 
-	// Test PrependFast
-	result = r2.PrependFast("Say: ")
+	// Test Prepend
+	result = r2.Prepend("Say: ")
 	expected = "Say: Hello, World!"
 	if result.String() != expected {
-		t.Errorf("PrependFast failed: got %q, want %q", result.String(), expected)
+		t.Errorf("Prepend failed: got %q, want %q", result.String(), expected)
 	}
 
 	t.Log("All fast path operations are correct ✓")
@@ -458,7 +442,7 @@ func TestStress_FastPaths_ManyOperations(t *testing.T) {
 
 	// Many fast path appends
 	for i := 0; i < 100; i++ {
-		r = r.AppendFast(fmt.Sprintf("%d", i%10))
+		r = r.Append(fmt.Sprintf("%d", i%10))
 	}
 
 	if r.Length() != 100 {

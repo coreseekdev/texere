@@ -34,6 +34,7 @@ func (r *Rope) IterReverse() *ReverseIterator {
 }
 
 // CharsAtReverse creates a reverse iterator starting from the character at charIdx.
+// The first call to Next() will position the iterator at charIdx (from start).
 func (r *Rope) CharsAtReverse(charIdx int) *ReverseIterator {
 	if r == nil || r.Length() == 0 {
 		return &ReverseIterator{rope: r, exhausted: true}
@@ -48,9 +49,12 @@ func (r *Rope) CharsAtReverse(charIdx int) *ReverseIterator {
 		return r.NewReverseIterator()
 	}
 
+	// Set position so that Next() moves to charIdx
+	// We want: totalLen - 1 - (position + 1) = charIdx
+	// Therefore: position = totalLen - 2 - charIdx
 	return &ReverseIterator{
 		rope:      r,
-		position:  charIdx,
+		position:  r.Length() - 2 - charIdx,
 		totalLen:  r.Length(),
 		exhausted: false,
 	}
@@ -117,7 +121,7 @@ func (it *ReverseIterator) IsExhausted() bool {
 
 // Peek returns the next character without advancing the iterator.
 func (it *ReverseIterator) Peek() rune {
-	if it.position+1 >= it.totalLen {
+	if it.exhausted || !it.HasPeek() {
 		panic("no next character")
 	}
 	nextPos := it.totalLen - 1 - (it.position + 1)
@@ -143,14 +147,17 @@ func (it *ReverseIterator) Seek(pos int) bool {
 }
 
 // SeekFromStart seeks to a specific position from the start of the rope.
+// After calling Next(), the iterator will be at the character at pos from start.
 func (it *ReverseIterator) SeekFromStart(pos int) bool {
 	if pos < 0 || pos >= it.totalLen {
 		it.exhausted = true
 		return false
 	}
 
-	// Convert to reverse position
-	it.position = it.totalLen - 1 - pos
+	// Convert to reverse position, accounting for Next() increment
+	// We want: totalLen - 1 - (position + 1) = pos
+	// Therefore: position = totalLen - 2 - pos
+	it.position = it.totalLen - 2 - pos
 	it.exhausted = false
 	return true
 }
@@ -185,16 +192,13 @@ func (it *ReverseIterator) Skip(n int) bool {
 	return it.HasNext() || it.position < it.totalLen-1
 }
 
-// String returns the remaining characters as a string.
+// String returns the remaining characters as a string in reverse order.
 func (it *ReverseIterator) String() string {
 	runes := make([]rune, 0)
 	for it.Next() {
 		runes = append(runes, it.Current())
 	}
-	// Reverse to get correct order
-	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
-		runes[i], runes[j] = runes[j], runes[i]
-	}
+	// Return in reverse order (as collected)
 	return string(runes)
 }
 
@@ -296,6 +300,7 @@ func (r *Rope) FindReverseFrom(beforePos int, fn func(rune) bool) (int, bool) {
 
 	it := r.IterReverse()
 	it.SeekFromStart(beforePos - 1)
+	it.Next() // Move to position beforePos, so subsequent Next() calls go backwards
 
 	for it.Next() {
 		if fn(it.Current()) {
@@ -369,13 +374,13 @@ func (r *Rope) LastIndexOf(substring string) int {
 	}
 
 	// Simple approach: iterate in reverse and check
-	//str := r.String()
 	substrRunes := []rune(substring)
 
 	for i := len(substrRunes); i <= r.Length(); i++ {
 		match := true
 		for j := 0; j < len(substrRunes); j++ {
-			if r.CharAt(r.Length()-i+j) != substrRunes[len(substrRunes)-1-j] {
+			// Check if substring matches at position (Length() - i)
+			if r.CharAt(r.Length()-i+j) != substrRunes[j] {
 				match = false
 				break
 			}

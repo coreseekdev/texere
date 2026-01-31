@@ -20,10 +20,10 @@ func (r *Rope) InsertOptimized(pos int, text string) *Rope {
 		return r
 	}
 	if pos == 0 {
-		return r.PrependOptimized(text)
+		return r.Prepend(text) // Now uses optimized implementation
 	}
 	if pos == r.length {
-		return r.AppendOptimized(text)
+		return r.Append(text)
 	}
 
 	newRoot := insertNodeOptimized(r.root, pos, text)

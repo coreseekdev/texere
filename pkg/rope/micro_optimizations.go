@@ -1,6 +1,7 @@
 package rope
 
 import (
+	"sort"
 	"unicode/utf8"
 )
 
@@ -20,12 +21,12 @@ func (r *Rope) InsertFast(pos int, text string) *Rope {
 
 	// Fast path 3: Insert at beginning
 	if pos == 0 {
-		return r.PrependFast(text)
+		return r.Prepend(text)
 	}
 
 	// Fast path 4: Insert at end
 	if pos == r.length {
-		return r.AppendFast(text)
+		return r.Append(text)
 	}
 
 	// Fast path 5: Small rope with single leaf (avoid tree traversal)
@@ -34,7 +35,7 @@ func (r *Rope) InsertFast(pos int, text string) *Rope {
 	}
 
 	// Standard path for complex cases
-	return r.InsertZeroAlloc(pos, text)
+	return r.InsertOptimized(pos, text)
 }
 
 // DeleteFast is the fastest deletion implementation with fast paths.
@@ -70,40 +71,11 @@ func (r *Rope) DeleteFast(start, end int) *Rope {
 	}
 
 	// Standard path
-	return r.DeleteZeroAlloc(start, end)
+	return r.DeleteOptimized(start, end)
 }
 
-// AppendFast is the fastest append implementation.
-func (r *Rope) AppendFast(text string) *Rope {
-	// Fast path: Empty text
-	if text == "" {
-		return r
-	}
-
-	// Fast path: Nil or empty rope
-	if r == nil || r.length == 0 {
-		return New(text)
-	}
-
-	// Use zero-alloc implementation
-	return r.AppendZeroAlloc(text)
-}
-
-// PrependFast is the fastest prepend implementation.
-func (r *Rope) PrependFast(text string) *Rope {
-	// Fast path: Empty text
-	if text == "" {
-		return r
-	}
-
-	// Fast path: Nil or empty rope
-	if r == nil || r.length == 0 {
-		return New(text)
-	}
-
-	// Use zero-alloc implementation
-	return r.PrependZeroAlloc(text)
-}
+// AppendFast and PrependFast removed - they were slower than standard Append/Prepend.
+// Use Append() and Prepend() directly instead.
 
 // SliceFast is the fastest slice implementation with optimizations.
 func (r *Rope) SliceFast(start, end int) string {
@@ -163,7 +135,7 @@ func insertIntoSingleLeaf(r *Rope, pos int, text string) *Rope {
 	}
 
 	// Standard insertion in middle
-	return r.InsertZeroAlloc(pos, text)
+	return r.InsertOptimized(pos, text)
 }
 
 // deleteFromSingleLeaf optimizes deletion from a single leaf.
@@ -202,7 +174,7 @@ func deleteFromSingleLeaf(r *Rope, start, end int) *Rope {
 	}
 
 	// Standard deletion
-	return r.DeleteZeroAlloc(start, end)
+	return r.DeleteOptimized(start, end)
 }
 
 // sliceSingleLeaf optimizes slicing a single leaf.
@@ -258,19 +230,21 @@ func (r *Rope) BatchInsert(inserts []Insertion) *Rope {
 		return r
 	}
 
+	// Fast path for single insertion
+	if len(inserts) == 1 {
+		return r.InsertFast(inserts[0].Pos, inserts[0].Text)
+	}
+
 	// Sort inserts by position (descending to avoid position recalculation)
 	sortedInserts := make([]Insertion, len(inserts))
 	copy(sortedInserts, inserts)
-	// Simple bubble sort (small arrays)
-	for i := 0; i < len(sortedInserts)-1; i++ {
-		for j := 0; j < len(sortedInserts)-i-1; j++ {
-			if sortedInserts[j].Pos < sortedInserts[j+1].Pos {
-				sortedInserts[j], sortedInserts[j+1] = sortedInserts[j+1], sortedInserts[j]
-			}
-		}
-	}
 
-	// Apply inserts from right to left
+	// Use efficient sorting for larger arrays
+	sort.Slice(sortedInserts, func(i, j int) bool {
+		return sortedInserts[i].Pos > sortedInserts[j].Pos // Descending order
+	})
+
+	// Apply inserts from right to left (positions stay valid)
 	result := r
 	for _, ins := range sortedInserts {
 		result = result.InsertFast(ins.Pos, ins.Text)
@@ -286,18 +260,21 @@ func (r *Rope) BatchDelete(ranges []Range) *Rope {
 		return r
 	}
 
+	// Fast path for single deletion
+	if len(ranges) == 1 {
+		return r.DeleteFast(ranges[0].From(), ranges[0].To())
+	}
+
 	// Sort ranges by start position (descending)
 	sortedRanges := make([]Range, len(ranges))
 	copy(sortedRanges, ranges)
-	for i := 0; i < len(sortedRanges)-1; i++ {
-		for j := 0; j < len(sortedRanges)-i-1; j++ {
-			if sortedRanges[j].From() < sortedRanges[j+1].From() {
-				sortedRanges[j], sortedRanges[j+1] = sortedRanges[j+1], sortedRanges[j]
-			}
-		}
-	}
 
-	// Apply deletions from right to left
+	// Use efficient sorting for larger arrays
+	sort.Slice(sortedRanges, func(i, j int) bool {
+		return sortedRanges[i].From() > sortedRanges[j].From() // Descending order
+	})
+
+	// Apply deletions from right to left (positions stay valid)
 	result := r
 	for _, rng := range sortedRanges {
 		result = result.DeleteFast(rng.From(), rng.To())
@@ -316,28 +293,6 @@ type Insertion struct {
 type ByteRange struct {
 	Start int
 	End   int
-}
-
-// ========== Cache-Friendly Operations ==========
-
-// StringFast is optimized for cache efficiency.
-// Uses a single pass through the tree.
-func (r *Rope) StringFast() string {
-	if r == nil || r.length == 0 {
-		return ""
-	}
-
-	// Pre-allocate with exact size
-	result := make([]byte, 0, r.size)
-
-	// Single-pass traversal
-	it := r.Chunks()
-	for it.Next() {
-		chunk := it.Current()
-		result = append(result, chunk...)
-	}
-
-	return string(result)
 }
 
 // ========== Inlined Helpers ==========
