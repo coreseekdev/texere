@@ -25,7 +25,7 @@ func TestChunkAtChar_MultiChunk(t *testing.T) {
 	builder.Append("hello")
 	builder.Append(" ")
 	builder.Append("world")
-	r := builder.Build()
+	r, _ := builder.Build()
 
 	// All positions should return valid chunks
 	for i := 0; i < r.Length(); i++ {
@@ -183,7 +183,7 @@ func TestChunkAtChar_Performance(t *testing.T) {
 	// Create deep tree with many chunks
 	r := New("")
 	for i := 0; i < 1000; i++ {
-		r = r.Insert(r.Length(), "word ")
+		r, _ = r.Insert(r.Length(), "word ")
 	}
 
 	// Test performance - just verify it's fast enough
@@ -200,7 +200,7 @@ func TestChunkAtByte_DeepTree(t *testing.T) {
 	// Create deep tree
 	r := New("")
 	for i := 0; i < 100; i++ {
-		r = r.Insert(r.Length(), "x")
+		r, _ = r.Insert(r.Length(), "x")
 	}
 
 	// Access in middle
@@ -249,7 +249,7 @@ func TestChunkCount(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		builder.Append("hello")
 	}
-	r2 := builder.Build()
+	r2, _ := builder.Build()
 	assert.GreaterOrEqual(t, r2.ChunkCount(), 1)
 }
 
@@ -274,7 +274,7 @@ func TestMinMaxChunkSize_MultiChunk(t *testing.T) {
 	builder.Append("hi")
 	builder.Append(" ")
 	builder.Append("hello world")
-	r := builder.Build()
+	r, _ := builder.Build()
 
 	minSize := r.MinChunkSize()
 	maxSize := r.MaxChunkSize()

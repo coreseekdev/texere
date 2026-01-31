@@ -145,7 +145,8 @@ func ExampleRope_iterator() {
 	// Iterate over runes
 	it := r.NewIterator()
 	for it.Next() {
-		fmt.Printf("%c\n", it.Current())
+		ch := it.Current()
+		fmt.Printf("%c\n", ch)
 	}
 	// Output:
 	// H
@@ -177,7 +178,8 @@ func ExampleRope_reverseIterator() {
 	// Iterate in reverse
 	it := r.IterReverse()
 	for it.Next() {
-		fmt.Printf("%c\n", it.Current())
+		ch, _ := it.Current()
+		fmt.Printf("%c\n", ch)
 	}
 	// Output:
 	// o
@@ -314,16 +316,13 @@ func ExampleRope_map() {
 	r := rope.New("hello")
 
 	// Transform each character
-	upper, err := r.Map(func(ch rune) rune {
+	upper := r.Map(func(ch rune) rune {
 		// Convert to uppercase
 		if ch >= 'a' && ch <= 'z' {
 			return ch - ('a' - 'A')
 		}
 		return ch
 	})
-	if err != nil {
-		panic(err)
-	}
 
 	fmt.Println(upper.String()) // HELLO
 }
@@ -332,12 +331,9 @@ func ExampleRope_filter() {
 	r := rope.New("Hello123World!")
 
 	// Keep only alphabetic characters
-	filtered, err := r.Filter(func(ch rune) bool {
+	filtered := r.Filter(func(ch rune) bool {
 		return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')
 	})
-	if err != nil {
-		panic(err)
-	}
 
 	fmt.Println(filtered.String()) // HelloWorld
 }

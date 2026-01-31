@@ -15,7 +15,7 @@ func BenchmarkInsertFast_SingleLeaf(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.InsertFast(7, text)
+		_, _ = r.InsertFast(7, text)
 	}
 }
 
@@ -25,7 +25,7 @@ func BenchmarkInsertFast_Beginning(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.InsertFast(0, text)
+		_, _ = r.InsertFast(0, text)
 	}
 }
 
@@ -35,7 +35,7 @@ func BenchmarkInsertFast_End(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.InsertFast(r.Length(), text)
+		_, _ = r.InsertFast(r.Length(), text)
 	}
 }
 
@@ -44,7 +44,7 @@ func BenchmarkInsertFast_EmptyText(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.InsertFast(5, "")
+		_, _ = r.InsertFast(5, "")
 	}
 }
 
@@ -53,7 +53,7 @@ func BenchmarkDeleteFast_SingleLeaf(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.DeleteFast(7, 12)
+		_, _ = r.DeleteFast(7, 12)
 	}
 }
 
@@ -62,7 +62,7 @@ func BenchmarkDeleteFast_Beginning(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.DeleteFast(0, 7)
+		_, _ = r.DeleteFast(0, 7)
 	}
 }
 
@@ -71,7 +71,7 @@ func BenchmarkDeleteFast_End(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.DeleteFast(7, r.Length())
+		_, _ = r.DeleteFast(7, r.Length())
 	}
 }
 
@@ -80,7 +80,7 @@ func BenchmarkDeleteFast_All(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.DeleteFast(0, r.Length())
+		_, _ = r.DeleteFast(0, r.Length())
 	}
 }
 
@@ -89,7 +89,7 @@ func BenchmarkSliceFast_Full(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.SliceFast(0, r.Length())
+		_, _ = r.SliceFast(0, r.Length())
 	}
 }
 
@@ -98,7 +98,7 @@ func BenchmarkSliceFast_SingleLeaf(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.SliceFast(7, 12)
+		_, _ = r.SliceFast(7, 12)
 	}
 }
 
@@ -112,19 +112,19 @@ func BenchmarkCompare_InsertFast_vs_Standard(b *testing.B) {
 
 	b.Run("Fast", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_ = r.InsertFast(pos, insertText)
+			_, _ = r.InsertFast(pos, insertText)
 		}
 	})
 
 	b.Run("Standard", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_ = r.Insert(pos, insertText)
+			_, _ = r.Insert(pos, insertText)
 		}
 	})
 
 	b.Run("Optimized", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_ = r.InsertOptimized(pos, insertText)
+			_, _ = r.InsertOptimized(pos, insertText)
 		}
 	})
 }
@@ -135,19 +135,19 @@ func BenchmarkCompare_DeleteFast_vs_Standard(b *testing.B) {
 
 	b.Run("Fast", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_ = r.DeleteFast(10, 20)
+			_, _ = r.DeleteFast(10, 20)
 		}
 	})
 
 	b.Run("Standard", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_ = r.Delete(10, 20)
+			_, _ = r.Delete(10, 20)
 		}
 	})
 
 	b.Run("Optimized", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_ = r.DeleteOptimized(10, 20)
+			_, _ = r.DeleteOptimized(10, 20)
 		}
 	})
 }
@@ -204,7 +204,7 @@ func BenchmarkBatchInsert_Small(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.BatchInsert(inserts)
+		_, _ = r.BatchInsert(inserts)
 	}
 }
 
@@ -218,7 +218,7 @@ func BenchmarkBatchInsert_vs_Sequential(b *testing.B) {
 
 	b.Run("Batch", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_ = r.BatchInsert(inserts)
+			_, _ = r.BatchInsert(inserts)
 		}
 	})
 
@@ -226,7 +226,7 @@ func BenchmarkBatchInsert_vs_Sequential(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			result := r
 			for _, ins := range inserts {
-				result = result.InsertFast(ins.Pos, ins.Text)
+				result, _ = result.InsertFast(ins.Pos, ins.Text)
 			}
 			_ = result
 		}
@@ -243,7 +243,7 @@ func BenchmarkBatchDelete_Small(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.BatchDelete(ranges)
+		_, _ = r.BatchDelete(ranges)
 	}
 }
 
@@ -313,7 +313,7 @@ func BenchmarkCacheEfficiency_SequentialAccess(b *testing.B) {
 		// Sequential access (cache-friendly)
 		// Rope length is ~800 chars (100 * "Chunk xx "), so use 80 char slices
 		for j := 0; j < 10; j++ {
-			_ = r.Slice(j*80, (j+1)*80)
+			_, _ = r.Slice(j*80, (j+1)*80)
 		}
 	}
 }
@@ -330,11 +330,11 @@ func BenchmarkCacheEfficiency_RandomAccess(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		// Random access (cache-unfriendly)
 		// Rope length is ~800 chars (100 * "Chunk xx "), stay within bounds
-		_ = r.Slice(100, 200)
-		_ = r.Slice(500, 600)
-		_ = r.Slice(700, 750)
-		_ = r.Slice(100, 200)
-		_ = r.Slice(600, 700)
+		_, _ = r.Slice(100, 200)
+		_, _ = r.Slice(500, 600)
+		_, _ = r.Slice(700, 750)
+		_, _ = r.Slice(100, 200)
+		_, _ = r.Slice(600, 700)
 	}
 }
 
@@ -345,21 +345,21 @@ func TestFastPaths_Correctness(t *testing.T) {
 	r := New(text)
 
 	// Test InsertFast
-	result := r.InsertFast(7, "INSERTED")
+	result, _ := r.InsertFast(7, "INSERTED")
 	expected := "Hello, INSERTEDWorld!"
 	if result.String() != expected {
 		t.Errorf("InsertFast failed: got %q, want %q", result.String(), expected)
 	}
 
 	// Test DeleteFast - delete "World" (positions 7-12)
-	result = r.DeleteFast(7, 12)
+	result, _ = r.DeleteFast(7, 12)
 	expectedStr := "Hello, !"
 	if result.String() != expectedStr {
 		t.Errorf("DeleteFast failed: got %q, want %q", result.String(), expectedStr)
 	}
 
 	// Test SliceFast
-	sliceResult := r.SliceFast(7, 12)
+	sliceResult, _ := r.SliceFast(7, 12)
 	expectedSlice := "World"
 	if sliceResult != expectedSlice {
 		t.Errorf("SliceFast failed: got %q, want %q", sliceResult, expectedSlice)
@@ -392,7 +392,7 @@ func TestBatchOperations_Correctness(t *testing.T) {
 		{Pos: 0, Text: "Start-"},
 		{Pos: 7, Text: "-Middle-"},
 	}
-	result := r.BatchInsert(inserts)
+	result, _ := r.BatchInsert(inserts)
 	expected := "Start-Hello, -Middle-World!"
 	if result.String() != expected {
 		t.Errorf("BatchInsert failed: got %q, want %q", result.String(), expected)
@@ -405,7 +405,7 @@ func TestBatchOperations_Correctness(t *testing.T) {
 		NewRange(0, 2),
 		NewRange(4, 6),
 	}
-	result = r2.BatchDelete(ranges)
+	result, _ = r2.BatchDelete(ranges)
 	expected = "CDGH"
 	if result.String() != expected {
 		t.Errorf("BatchDelete failed: got %q, want %q", result.String(), expected)
@@ -451,7 +451,7 @@ func TestStress_FastPaths_ManyOperations(t *testing.T) {
 
 	// Many fast path deletes
 	for i := 0; i < 50; i++ {
-		r = r.DeleteFast(0, 1)
+		r, _ = r.DeleteFast(0, 1)
 	}
 
 	if r.Length() != 50 {

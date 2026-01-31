@@ -62,7 +62,7 @@ func TestCharOps_InsertChar(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := New(tt.text)
-			result := r.InsertChar(tt.pos, tt.ch)
+			result, _ := r.InsertChar(tt.pos, tt.ch)
 			assert.Equal(t, tt.expected, result.String())
 		})
 	}
@@ -111,7 +111,7 @@ func TestCharOps_RemoveChar(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := New(tt.text)
-			result := r.RemoveChar(tt.pos)
+			result, _ := r.RemoveChar(tt.pos)
 			assert.Equal(t, tt.expected, result.String())
 		})
 	}
@@ -159,7 +159,7 @@ func TestCharOps_ReplaceChar(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := New(tt.text)
-			result := r.ReplaceChar(tt.pos, tt.ch)
+			result, _ := r.ReplaceChar(tt.pos, tt.ch)
 			assert.Equal(t, tt.expected, result.String())
 		})
 	}
@@ -207,7 +207,7 @@ func TestCharOps_SwapChar(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := New(tt.text)
-			result := r.SwapChar(tt.pos1, tt.pos2)
+			result, _ := r.SwapChar(tt.pos1, tt.pos2)
 			assert.Equal(t, tt.expected, result.String())
 		})
 	}
@@ -353,7 +353,7 @@ func TestCharOps_IndexOfCharFrom(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := New(tt.text)
-			result := r.IndexOfCharFrom(tt.pos, tt.ch)
+			result, _ := r.IndexOfCharFrom(tt.pos, tt.ch)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -390,7 +390,7 @@ func TestCharOps_LastIndexOfChar(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := New(tt.text)
-			result := r.LastIndexOfChar(tt.ch)
+			result, _ := r.LastIndexOfChar(tt.ch)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -553,7 +553,7 @@ func TestCharOps_MapChars(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := New(tt.text)
-			result := r.MapChars(tt.fn)
+			result, _ := r.MapChars(tt.fn)
 			assert.Equal(t, tt.expected, result.String())
 		})
 	}
@@ -590,7 +590,7 @@ func TestCharOps_FilterChars(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := New(tt.text)
-			result := r.FilterChars(tt.fn)
+			result, _ := r.FilterChars(tt.fn)
 			assert.Equal(t, tt.expected, result.String())
 		})
 	}
@@ -633,7 +633,7 @@ func TestCharOps_RemoveChars(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := New(tt.text)
-			result := r.RemoveChars(tt.chars...)
+			result, _ := r.RemoveChars(tt.chars...)
 			assert.Equal(t, tt.expected, result.String())
 		})
 	}
@@ -674,7 +674,7 @@ func TestCharOps_ReplaceAllChar(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := New(tt.text)
-			result := r.ReplaceAllChar(tt.oldChar, tt.newChar)
+			result, _ := r.ReplaceAllChar(tt.oldChar, tt.newChar)
 			assert.Equal(t, tt.expected, result.String())
 		})
 	}
@@ -717,7 +717,7 @@ func TestCharOps_ReverseChars(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := New(tt.text)
-			result := r.ReverseChars()
+			result, _ := r.ReverseChars()
 			assert.Equal(t, tt.expected, result.String())
 		})
 	}
@@ -836,9 +836,12 @@ func TestCharOps_TrimTests(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := New(tt.text)
-			assert.Equal(t, tt.trimLeft, r.TrimLeftWhitespace().String())
-			assert.Equal(t, tt.trimRight, r.TrimRightWhitespace().String())
-			assert.Equal(t, tt.trimBoth, r.TrimWhitespace().String())
+			s1, _ := r.TrimLeftWhitespace()
+			assert.Equal(t, tt.trimLeft, s1.String())
+			s2, _ := r.TrimRightWhitespace()
+			assert.Equal(t, tt.trimRight, s2.String())
+			s3, _ := r.TrimWhitespace()
+			assert.Equal(t, tt.trimBoth, s3.String())
 		})
 	}
 }
@@ -848,14 +851,18 @@ func TestCharOps_NilRope(t *testing.T) {
 	var r *Rope
 
 	// InsertChar on nil creates a new rope with just that character
-	assert.Equal(t, "A", r.InsertChar(0, 'A').String())
+	r1, _ := r.InsertChar(0, 'A')
+	assert.Equal(t, "A", r1.String())
 	// RemoveChar on nil returns nil (empty string)
-	assert.Equal(t, "", r.RemoveChar(0).String())
+	r2, _ := r.RemoveChar(0)
+	assert.Equal(t, "", r2.String())
 	assert.False(t, r.ContainsChar('A'))
 	assert.Equal(t, -1, r.IndexOfChar('A'))
 	assert.Equal(t, 0, r.CountChar('A'))
 	assert.Equal(t, 0, len(r.CollectChars()))
 	assert.Equal(t, 0, len(r.UniqueChars()))
-	assert.Equal(t, "", r.MapChars(func(ch rune) rune { return ch }).String())
-	assert.Equal(t, "", r.FilterChars(func(ch rune) bool { return true }).String())
+	mapped, _ := r.MapChars(func(ch rune) rune { return ch })
+	assert.Equal(t, "", mapped.String())
+	filtered, _ := r.FilterChars(func(ch rune) bool { return true })
+	assert.Equal(t, "", filtered.String())
 }

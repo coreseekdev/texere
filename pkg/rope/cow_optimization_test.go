@@ -248,7 +248,7 @@ func BenchmarkBatchInsertOptimized_Small(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_ = r.BatchInsert(inserts)
+		_, _ = r.BatchInsert(inserts)
 	}
 }
 
@@ -263,7 +263,7 @@ func BenchmarkBatchInsertOptimized_Medium(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_ = r.BatchInsert(inserts)
+		_, _ = r.BatchInsert(inserts)
 	}
 }
 
@@ -282,7 +282,7 @@ func BenchmarkBatchInsertOptimized_Large(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_ = r.BatchInsert(inserts)
+		_, _ = r.BatchInsert(inserts)
 	}
 }
 
@@ -297,7 +297,7 @@ func BenchmarkBatchDeleteOptimized_Small(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_ = r.BatchDelete(ranges)
+		_, _ = r.BatchDelete(ranges)
 	}
 }
 
@@ -312,7 +312,7 @@ func BenchmarkBatchDeleteOptimized_Medium(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_ = r.BatchDelete(ranges)
+		_, _ = r.BatchDelete(ranges)
 	}
 }
 
@@ -331,7 +331,7 @@ func BenchmarkBatchDeleteOptimized_Large(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_ = r.BatchDelete(ranges)
+		_, _ = r.BatchDelete(ranges)
 	}
 }
 
@@ -348,7 +348,7 @@ func BenchmarkSequentialInsert_Small(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		rope := r
 		for j := 0; j < 5; j++ {
-			rope = rope.InsertFast(j*2, "X")
+			rope, _ = rope.InsertFast(j*2, "X")
 		}
 	}
 }
@@ -362,7 +362,7 @@ func BenchmarkSequentialInsert_Medium(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		rope := r
 		for j := 0; j < 20; j++ {
-			rope = rope.InsertFast(j*10, "X")
+			rope, _ = rope.InsertFast(j*10, "X")
 		}
 	}
 }
@@ -376,7 +376,7 @@ func BenchmarkSequentialDelete_Small(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		rope := r
 		for j := 0; j < 5; j++ {
-			rope = rope.DeleteFast(j*10, j*10+5)
+			rope, _ = rope.DeleteFast(j*10, j*10+5)
 		}
 	}
 }
@@ -390,7 +390,7 @@ func BenchmarkSequentialDelete_Medium(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		rope := r
 		for j := 0; j < 20; j++ {
-			rope = rope.DeleteFast(j*10, j*10+5)
+			rope, _ = rope.DeleteFast(j*10, j*10+5)
 		}
 	}
 }

@@ -15,13 +15,13 @@ func TestHash_Consistency_Small(t *testing.T) {
 	b1 := NewBuilder()
 	b1.Append("Hello w")
 	b1.Append("orld")
-	r1 = b1.Build()
+	r1, _ = b1.Build()
 
 	r2 := New("")
 	b2 := NewBuilder()
 	b2.Append("Hell")
 	b2.Append("o world")
-	r2 = b2.Build()
+	r2, _ = b2.Build()
 
 	// Should have same hash
 	hash1 := r1.HashCode64()
@@ -48,7 +48,7 @@ func TestHash_Consistency_Medium(t *testing.T) {
 		}
 		b1.Append(text[i:end])
 	}
-	r1 = b1.Build()
+	r1, _ = b1.Build()
 
 	// Build rope with 7-byte chunks
 	r2 := New("")
@@ -60,7 +60,7 @@ func TestHash_Consistency_Medium(t *testing.T) {
 		}
 		b2.Append(text[i:end])
 	}
-	r2 = b2.Build()
+	r2, _ = b2.Build()
 
 	// Should have same hash
 	hash1 := r1.HashCode64()
@@ -89,7 +89,7 @@ func TestHash_Consistency_Large(t *testing.T) {
 		}
 		b1.Append(text[i:end])
 	}
-	r1 = b1.Build()
+	r1, _ = b1.Build()
 
 	// Build rope with 547-byte chunks
 	r2 := New("")
@@ -101,7 +101,7 @@ func TestHash_Consistency_Large(t *testing.T) {
 		}
 		b2.Append(text[i:end])
 	}
-	r2 = b2.Build()
+	r2, _ = b2.Build()
 
 	// Should have same hash
 	hash1 := r1.HashCode64()
@@ -160,7 +160,7 @@ func TestHash_SingleInsert(t *testing.T) {
 	r1 := New("Hello World")
 	hash1 := r1.HashCode64()
 
-	r2 := r1.Insert(5, "XXX")
+	r2, _ := r1.Insert(5, "XXX")
 	hash2 := r2.HashCode64()
 
 	assert.NotEqual(t, hash1, hash2)
@@ -171,7 +171,7 @@ func TestHash_Delete(t *testing.T) {
 	r1 := New("Hello World")
 	hash1 := r1.HashCode64()
 
-	r2 := r1.Delete(5, 6)
+	r2, _ := r1.Delete(5, 6)
 	hash2 := r2.HashCode64()
 
 	assert.NotEqual(t, hash1, hash2)
@@ -183,7 +183,7 @@ func TestHash_SplitMerge(t *testing.T) {
 	r := New(text)
 	hash1 := r.HashCode64()
 
-	left, right := r.Split(6)
+	left, right, _ := r.Split(6)
 	merged := left.AppendRope(right)
 	hash2 := merged.HashCode64()
 

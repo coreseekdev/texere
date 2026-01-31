@@ -49,36 +49,36 @@ func TestRopey_FromStr_WithUnicode(t *testing.T) {
 // TestInsert_Beginning tests inserting at the beginning
 func TestRopey_Insert_Beginning(t *testing.T) {
 	r := New("World")
-	result := r.Insert(0, "Hello, ")
+	result, _ := r.Insert(0, "Hello, ")
 	assert.Equal(t, "Hello, World", result.String())
 }
 
 // TestInsert_End tests inserting at the end
 func TestRopey_Insert_End(t *testing.T) {
 	r := New("Hello, ")
-	result := r.Insert(r.Length(), "World")
+	result, _ := r.Insert(r.Length(), "World")
 	assert.Equal(t, "Hello, World", result.String())
 }
 
 // TestInsert_Middle tests inserting in the middle
 func TestRopey_Insert_Middle(t *testing.T) {
 	r := New("HeWorld")
-	result := r.Insert(2, "llo, ")
+	result, _ := r.Insert(2, "llo, ")
 	assert.Equal(t, "Hello, World", result.String())
 }
 
 // TestInsert_Multiple tests multiple insertions
 func TestRopey_Insert_Multiple(t *testing.T) {
 	r := New("")
-	r = r.Insert(0, "World")
-	r = r.Insert(0, "Hello, ")
+	r, _ = r.Insert(0, "World")
+	r, _ = r.Insert(0, "Hello, ")
 	assert.Equal(t, "Hello, World", r.String())
 }
 
 // TestInsert_EmptyString tests inserting empty string
 func TestRopey_Insert_EmptyString(t *testing.T) {
 	r := New("Hello, World")
-	result := r.Insert(5, "")
+	result, _ := r.Insert(5, "")
 	assert.Equal(t, r.String(), result.String())
 	assert.Equal(t, r.Length(), result.Length())
 }
@@ -87,7 +87,7 @@ func TestRopey_Insert_EmptyString(t *testing.T) {
 func TestRopey_Insert_LargeText(t *testing.T) {
 	r := New("Hello")
 	largeText := strings.Repeat("A", 10000)
-	result := r.Insert(5, largeText)
+	result, _ := r.Insert(5, largeText)
 	assert.Equal(t, 5+10000, result.Length())
 	assert.Equal(t, "Hello"+largeText, result.String())
 }
@@ -95,7 +95,7 @@ func TestRopey_Insert_LargeText(t *testing.T) {
 // TestInsert_WithUnicode tests inserting Unicode text
 func TestRopey_Insert_WithUnicode(t *testing.T) {
 	r := New("Hello World")
-	result := r.Insert(5, " 世界")
+	result, _ := r.Insert(5, " 世界")
 	assert.Equal(t, "Hello 世界 World", result.String())
 	assert.Equal(t, 14, result.Length()) // Hello(5) + space(1) + 世界(2) + space(1) + World(5) = 14
 }
@@ -103,28 +103,28 @@ func TestRopey_Insert_WithUnicode(t *testing.T) {
 // TestRemove_Beginning tests removing from beginning
 func TestRopey_Remove_Beginning(t *testing.T) {
 	r := New("Hello, World")
-	result := r.Delete(0, 7)
+	result, _ := r.Delete(0, 7)
 	assert.Equal(t, "World", result.String())
 }
 
 // TestRemove_End tests removing from end
 func TestRopey_Remove_End(t *testing.T) {
 	r := New("Hello, World")
-	result := r.Delete(7, 12)
+	result, _ := r.Delete(7, 12)
 	assert.Equal(t, "Hello, ", result.String()) // Includes trailing space
 }
 
 // TestRemove_Middle tests removing from middle
 func TestRopey_Remove_Middle(t *testing.T) {
 	r := New("Hello, World!")
-	result := r.Delete(5, 7)
+	result, _ := r.Delete(5, 7)
 	assert.Equal(t, "HelloWorld!", result.String())
 }
 
 // TestRemove_All tests removing all content
 func TestRopey_Remove_All(t *testing.T) {
 	r := New("Hello, World")
-	result := r.Delete(0, r.Length())
+	result, _ := r.Delete(0, r.Length())
 	assert.Equal(t, 0, result.Length())
 	assert.Equal(t, "", result.String())
 }
@@ -132,7 +132,7 @@ func TestRopey_Remove_All(t *testing.T) {
 // TestRemove_EmptyRange tests removing empty range
 func TestRopey_Remove_EmptyRange(t *testing.T) {
 	r := New("Hello, World")
-	result := r.Delete(5, 5)
+	result, _ := r.Delete(5, 5)
 	assert.Equal(t, r.String(), result.String())
 	assert.Equal(t, r.Length(), result.Length())
 }
@@ -140,14 +140,14 @@ func TestRopey_Remove_EmptyRange(t *testing.T) {
 // TestRemove_SingleChar tests removing single character
 func TestRopey_Remove_SingleChar(t *testing.T) {
 	r := New("Hello")
-	result := r.Delete(1, 2)
+	result, _ := r.Delete(1, 2)
 	assert.Equal(t, "Hllo", result.String())
 }
 
 // TestSplitOff_Beginning tests splitting from beginning
 func TestRopey_SplitOff_Beginning(t *testing.T) {
 	r := New("Hello, World")
-	left, right := r.Split(5)
+	left, right, _ := r.Split(5)
 	assert.Equal(t, "Hello", left.String())
 	assert.Equal(t, ", World", right.String())
 }
@@ -155,7 +155,7 @@ func TestRopey_SplitOff_Beginning(t *testing.T) {
 // TestSplitOff_End tests splitting from end
 func TestRopey_SplitOff_End(t *testing.T) {
 	r := New("Hello, World")
-	left, right := r.Split(r.Length())
+	left, right, _ := r.Split(r.Length())
 	assert.Equal(t, "Hello, World", left.String())
 	assert.Equal(t, 0, right.Length())
 }
@@ -163,7 +163,7 @@ func TestRopey_SplitOff_End(t *testing.T) {
 // TestSplitOff_Middle tests splitting from middle
 func TestRopey_SplitOff_Middle(t *testing.T) {
 	r := New("Hello, World")
-	left, right := r.Split(7)
+	left, right, _ := r.Split(7)
 	assert.Equal(t, "Hello, ", left.String()) // Includes trailing space
 	assert.Equal(t, "World", right.String())
 }
@@ -283,28 +283,28 @@ func TestRopey_Line(t *testing.T) {
 // TestSlice_Full tests creating full slice
 func TestRopey_Slice_Full(t *testing.T) {
 	r := New("Hello, World")
-	result := r.Slice(0, r.Length())
+	result, _ := r.Slice(0, r.Length())
 	assert.Equal(t, "Hello, World", result)
 }
 
 // TestSlice_Subset tests creating partial slice
 func TestRopey_Slice_Subset(t *testing.T) {
 	r := New("Hello, World")
-	result := r.Slice(7, 12)
+	result, _ := r.Slice(7, 12)
 	assert.Equal(t, "World", result)
 }
 
 // TestSlice_Empty tests creating empty slice
 func TestRopey_Slice_Empty(t *testing.T) {
 	r := New("Hello, World")
-	result := r.Slice(5, 5)
+	result, _ := r.Slice(5, 5)
 	assert.Equal(t, "", result)
 }
 
 // TestSlice_WithUnicode tests slicing with Unicode
 func TestRopey_Slice_WithUnicode(t *testing.T) {
 	r := New("Hello 世界 World")
-	result := r.Slice(6, 8)
+	result, _ := r.Slice(6, 8)
 	assert.Equal(t, "世界", result)
 }
 
@@ -315,15 +315,15 @@ func TestRopey_UTF8_AllValid(t *testing.T) {
 	r := New("Hello 世界 🌍")
 
 	// Insert
-	r2 := r.Insert(6, "ABC")
+	r2, _ := r.Insert(6, "ABC")
 	assert.True(t, utf8.ValidString(r2.String()))
 
 	// Delete
-	r3 := r.Delete(6, 9)
+	r3, _ := r.Delete(6, 9)
 	assert.True(t, utf8.ValidString(r3.String()))
 
 	// Slice
-	slice := r.Slice(0, 6)
+	slice, _ := r.Slice(0, 6)
 	assert.True(t, utf8.ValidString(slice))
 }
 
@@ -336,11 +336,11 @@ func TestRopey_Unicode_4ByteChars(t *testing.T) {
 	assert.Equal(t, 12, r.Size()) // 3 * 4
 
 	// Insert emoji
-	r2 := r.Insert(1, "🌐")
+	r2, _ := r.Insert(1, "🌐")
 	assert.Equal(t, 4, r2.Length())
 
 	// Delete emoji
-	r3 := r.Delete(0, 1)
+	r3, _ := r.Delete(0, 1)
 	assert.Equal(t, 2, r3.Length())
 }
 
@@ -351,7 +351,7 @@ func TestRopey_Unicode_CombiningChars(t *testing.T) {
 	r := New(text)
 
 	// Insert combining character
-	r2 := r.Insert(6, "\u0301") // Combining acute accent
+	r2, _ := r.Insert(6, "\u0301") // Combining acute accent
 	result := r2.String()
 
 	// Result should be valid UTF-8
@@ -363,21 +363,21 @@ func TestRopey_Unicode_CombiningChars(t *testing.T) {
 // TestCRLF_Insert tests inserting CRLF
 func TestRopey_CRLF_Insert(t *testing.T) {
 	r := New("Hello")
-	result := r.Insert(5, "\r\n")
+	result, _ := r.Insert(5, "\r\n")
 	assert.Equal(t, "Hello\r\n", result.String())
 }
 
 // TestCRLF_Remove tests removing CRLF
 func TestRopey_CRLF_Remove(t *testing.T) {
 	r := New("Hello\r\nWorld")
-	result := r.Delete(5, 7)
+	result, _ := r.Delete(5, 7)
 	assert.Equal(t, "HelloWorld", result.String())
 }
 
 // TestCRLF_Split tests splitting at CRLF
 func TestRopey_CRLF_Split(t *testing.T) {
 	r := New("Hello\r\nWorld")
-	left, right := r.Split(5)
+	left, right, _ := r.Split(5)
 	assert.Equal(t, "Hello", left.String())
 	assert.Equal(t, "\r\nWorld", right.String())
 }
@@ -393,7 +393,7 @@ func TestRopey_EmptyRope(t *testing.T) {
 	assert.Equal(t, "", r.String())
 
 	// Operations that should handle empty rope
-	r2 := r.Insert(0, "Hello")
+	r2, _ := r.Insert(0, "Hello")
 	assert.Equal(t, "Hello", r2.String())
 
 	r3 := r.AppendRope(New("World"))
@@ -408,7 +408,7 @@ func TestRopey_SingleChar(t *testing.T) {
 	assert.Equal(t, 1, r.Size())
 	assert.Equal(t, "a", r.String())
 
-	r2 := r.Delete(0, 1)
+	r2, _ := r.Delete(0, 1)
 	assert.Equal(t, 0, r2.Length())
 }
 
@@ -429,11 +429,11 @@ func TestIndexZero(t *testing.T) {
 	r := New("World")
 
 	// Insert at 0
-	result := r.Insert(0, "Hello, ")
+	result, _ := r.Insert(0, "Hello, ")
 	assert.Equal(t, "Hello, World", result.String())
 
 	// Delete from 0
-	result = r.Delete(0, 1)
+	result, _ = r.Delete(0, 1)
 	assert.Equal(t, "orld", result.String())
 }
 
@@ -442,11 +442,11 @@ func TestIndexAtEnd(t *testing.T) {
 	r := New("Hello")
 
 	// Insert at end
-	result := r.Insert(5, " World")
+	result, _ := r.Insert(5, " World")
 	assert.Equal(t, "Hello World", result.String())
 
 	// Delete to end
-	result = r.Delete(3, 5)
+	result, _ = r.Delete(3, 5)
 	assert.Equal(t, "Hel", result.String())
 }
 
@@ -471,7 +471,7 @@ func TestRopey_Integrity_TreeStructure(t *testing.T) {
 
 	// Perform multiple operations
 	for i := 0; i < 100; i++ {
-		r = r.Insert(r.Length(), fmt.Sprintf("%d", i%10))
+		r, _ = r.Insert(r.Length(), fmt.Sprintf("%d", i%10))
 	}
 
 	// Verify integrity
@@ -492,7 +492,7 @@ func TestRopey_Invariants_CharCount(t *testing.T) {
 func TestRopey_Invariants_AfterInsert(t *testing.T) {
 	r := New("Hello")
 
-	r2 := r.Insert(5, " World")
+	r2, _ := r.Insert(5, " World")
 
 	assert.Equal(t, r.Length()+6, r2.Length())
 	assert.Equal(t, r.Size()+6, r2.Size())
@@ -503,7 +503,7 @@ func TestRopey_Invariants_AfterInsert(t *testing.T) {
 func TestRopey_Invariants_AfterDelete(t *testing.T) {
 	r := New("Hello World")
 
-	r2 := r.Delete(5, 6) // Delete the space
+	r2, _ := r.Delete(5, 6) // Delete the space
 
 	assert.Equal(t, r.Length()-1, r2.Length())
 	assert.Equal(t, r.Size()-1, r2.Size())
@@ -536,7 +536,7 @@ func TestRopey_Clone_Independence(t *testing.T) {
 	r2 := r1.Clone()
 
 	// Modify r1
-	r1Modified := r1.Insert(5, " World")
+	r1Modified, _ := r1.Insert(5, " World")
 
 	// r2 should be unchanged
 	assert.Equal(t, "Hello", r2.String())
@@ -659,7 +659,7 @@ func randomInserts(t *testing.T, numOps int) {
 		}
 		pos := rng.Intn(ropeLen)
 		s := strings[rng.Intn(len(strings))]
-		r = r.Insert(pos, s)
+		r, _ = r.Insert(pos, s)
 	}
 
 	// Verify integrity
@@ -689,7 +689,7 @@ func randomMutations(t *testing.T, numOps int) {
 	rng := rand.New(rand.NewSource(rand.Int63()))
 
 	// Start with some content
-	r = r.Insert(0, "Hello World!")
+	r, _ = r.Insert(0, "Hello World!")
 
 	strings := []string{
 		"foo",
@@ -714,7 +714,7 @@ func randomMutations(t *testing.T, numOps int) {
 				}
 				pos := rng.Intn(ropeLen)
 				s := strings[rng.Intn(len(strings))]
-				r = r.Insert(pos, s)
+				r, _ = r.Insert(pos, s)
 			}
 
 		case 1: // Delete
@@ -724,7 +724,7 @@ func randomMutations(t *testing.T, numOps int) {
 				if end > r.Length() {
 					end = r.Length()
 				}
-				r = r.Delete(start, end)
+				r, _ = r.Delete(start, end)
 			}
 
 		case 2: // Append
@@ -774,7 +774,7 @@ func TestProperty_SplitMergeRoundtrip(t *testing.T) {
 
 		// Split at random position
 		pos := rand.Intn(r.Length() + 1)
-		left, right := r.Split(pos)
+		left, right, _ := r.Split(pos)
 
 		// Merge back
 		merged := left.AppendRope(right)
@@ -791,12 +791,12 @@ func TestProperty_InsertDeleteRoundtrip(t *testing.T) {
 	r := New(original)
 
 	// Insert at position 6
-	r = r.Insert(6, "XXX")
+	r, _ = r.Insert(6, "XXX")
 	assert.Contains(t, r.String(), "XXX")
 
 	// Now delete the XXX we just inserted
 	// Since we know it was inserted at position 6, and it's 3 characters long
-	r = r.Delete(6, 9)
+	r, _ = r.Delete(6, 9)
 
 	// Should be back to original
 	assert.Equal(t, original, r.String())
@@ -836,7 +836,7 @@ func TestProperty_SliceConsistency(t *testing.T) {
 	// All possible slices should be valid
 	for i := 0; i <= r.Length(); i++ {
 		for j := i; j <= r.Length(); j++ {
-			slice := r.Slice(i, j)
+			slice, _ := r.Slice(i, j)
 
 			// Should be valid UTF-8
 			assert.True(t, utf8.ValidString(slice))
@@ -914,7 +914,7 @@ func TestProperty_RandomSplitsConsistency(t *testing.T) {
 		}
 
 		pos := rng.Intn(r.Length())
-		left, right := r.Split(pos)
+		left, right, _ := r.Split(pos)
 
 		// Verify split was correct
 		combined := left.String() + right.String()
@@ -996,7 +996,8 @@ func TestProperty_EmptyRopeOperations(t *testing.T) {
 	assert.False(t, it.Next())
 
 	// Slicing should return empty
-	assert.Equal(t, "", r.Slice(0, 0))
+	s, _ := r.Slice(0, 0)
+	assert.Equal(t, "", s)
 
 	// Append should work
 	r2 := r.Append("Hello")
@@ -1014,7 +1015,8 @@ func TestProperty_SingleCharRope(t *testing.T) {
 	assert.Equal(t, "a", r.String())
 
 	// CharAt should work
-	assert.Equal(t, 'a', r.CharAt(0))
+	c, _ := r.CharAt(0)
+	assert.Equal(t, 'a', c)
 
 	// Iterator should work
 	it := r.NewIterator()

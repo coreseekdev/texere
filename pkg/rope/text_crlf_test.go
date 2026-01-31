@@ -43,7 +43,7 @@ func TestCRLF_RandomInserts_Small(t *testing.T) {
 		}
 
 		text := crlfVariations[rng.Intn(len(crlfVariations))]
-		r = r.Insert(pos, text)
+		r, _ = r.Insert(pos, text)
 
 		// Make sure the tree is sound
 		assert.True(t, utf8.ValidString(r.String()))
@@ -83,7 +83,7 @@ func TestCRLF_RandomInserts_Large(t *testing.T) {
 		}
 
 		text := crlfVariations[rng.Intn(len(crlfVariations))]
-		r = r.Insert(pos, text)
+		r, _ = r.Insert(pos, text)
 
 		// Verify integrity
 		assert.True(t, utf8.ValidString(r.String()))
@@ -112,7 +112,7 @@ func TestCRLF_RandomRemovals(t *testing.T) {
 		"\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\rみんなさん！\n\r\n\r\n" +
 		"\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r"
 
-	r = r.Insert(0, crlfText)
+	r, _ = r.Insert(0, crlfText)
 
 	// Do a bunch of random incoherent removals
 	for i := 0; i < (1 << 9); i++ {
@@ -125,7 +125,7 @@ func TestCRLF_RandomRemovals(t *testing.T) {
 		if end > r.Length() {
 			end = r.Length()
 		}
-		r = r.Delete(start, end)
+		r, _ = r.Delete(start, end)
 
 		if r.Length() == 0 {
 			break
@@ -136,7 +136,7 @@ func TestCRLF_RandomRemovals(t *testing.T) {
 		if end > r.Length() {
 			end = r.Length()
 		}
-		r = r.Delete(start, end)
+		r, _ = r.Delete(start, end)
 
 		// Make sure the tree is sound
 		assert.True(t, utf8.ValidString(r.String()))
@@ -153,7 +153,7 @@ func TestCRLF_InsertAtBoundaries(t *testing.T) {
 	positions := []int{0, 1, 5, len(text)}
 
 	for _, pos := range positions {
-		r2 := r.Insert(pos, "\r\n")
+		r2, _ := r.Insert(pos, "\r\n")
 
 		// Verify CRLF is present
 		assert.Contains(t, r2.String(), "\r\n")
@@ -178,7 +178,7 @@ func TestCRLF_DeleteAtBoundaries(t *testing.T) {
 		for i := 0; i < len(str); i++ {
 			if i+1 < len(str) && str[i] == '\r' && str[i+1] == '\n' {
 				// Found CRLF, delete it
-				r = r.Delete(i, i+2)
+				r, _ = r.Delete(i, i+2)
 				break
 			}
 		}
@@ -200,7 +200,7 @@ func TestCRLF_SplitAtCRLF(t *testing.T) {
 			continue
 		}
 
-		left, right := r.Split(pos)
+		left, right, _ := r.Split(pos)
 
 		// Both parts should be valid UTF-8
 		assert.True(t, utf8.ValidString(left.String()))

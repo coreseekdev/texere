@@ -19,7 +19,7 @@ func TestCompose_Basic(t *testing.T) {
 		Insert("abc")     // 3 chars
 
 	// Verify cs1 transforms document correctly
-	result1 := cs1.Apply(doc)
+	result1, _ := cs1.Apply(doc)
 	expected1 := "hello test! abc"
 	if result1.String() != expected1 {
 		t.Errorf("cs1.Apply: expected %q, got %q", expected1, result1.String())
@@ -37,7 +37,7 @@ func TestCompose_Basic(t *testing.T) {
 
 	// Compose should produce equivalent result
 	composed := cs1.Compose(cs2)
-	result := composed.Apply(doc)
+	result, _ := composed.Apply(doc)
 
 	// Expected: "世orld! abc"
 	expected := "世orld! abc"
@@ -63,7 +63,7 @@ func TestCompose_Empty(t *testing.T) {
 	cs2 := NewChangeSet(cs1.LenAfter()) // Empty
 
 	composed := cs1.Compose(cs2)
-	result := composed.Apply(doc)
+	result, _ := composed.Apply(doc)
 
 	if result.String() != "hello world" {
 		t.Errorf("Expected 'hello world', got %q", result.String())
@@ -79,15 +79,15 @@ func TestInvert_Basic(t *testing.T) {
 		Insert("gophers")
 
 	// Apply changeset
-	modified := cs.Apply(doc)
+	modified, _ := cs.Apply(doc)
 	expectedModified := "hello gophers"
 	if modified.String() != expectedModified {
 		t.Fatalf("Apply: expected %q, got %q", expectedModified, modified.String())
 	}
 
 	// Invert and apply to get back original
-	inverted := cs.Invert(doc)
-	restored := inverted.Apply(modified)
+	inverted, _ := cs.Invert(doc)
+	restored, _ := inverted.Apply(modified)
 
 	if restored.String() != doc.String() {
 		t.Errorf("Invert: expected %q, got %q", doc.String(), restored.String())

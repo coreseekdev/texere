@@ -82,7 +82,7 @@ func TestGrapheme_IterationConsistency(t *testing.T) {
 		builder.Append(it.Current().Text)
 	}
 
-	r2 := builder.Build()
+	r2, _ := builder.Build()
 	assert.Equal(t, text, r2.String())
 }
 
@@ -157,17 +157,17 @@ func TestGrapheme_AtCombining(t *testing.T) {
 func TestGrapheme_Slice(t *testing.T) {
 	r := New("Hello World")
 
-	result := r.GraphemeSlice(0, 5)
+	result, _ := r.GraphemeSlice(0, 5)
 	assert.Equal(t, "Hello", result.String())
 
-	result = r.GraphemeSlice(6, 11)
+	result, _ = r.GraphemeSlice(6, 11)
 	assert.Equal(t, "World", result.String())
 }
 
 func TestGrapheme_SliceCombining(t *testing.T) {
 	r := New("e\u0301l\u0300o")
 
-	result := r.GraphemeSlice(0, 2)
+	result, _ := r.GraphemeSlice(0, 2)
 	assert.Equal(t, "e\u0301l\u0300", result.String())
 }
 
@@ -187,7 +187,7 @@ func TestGrapheme_ForEach(t *testing.T) {
 func TestGrapheme_Map(t *testing.T) {
 	r := New("hello")
 
-	result := r.MapGraphemes(func(g Grapheme) string {
+	result, _ := r.MapGraphemes(func(g Grapheme) string {
 		return g.Text + g.Text
 	})
 
@@ -197,7 +197,7 @@ func TestGrapheme_Map(t *testing.T) {
 func TestGrapheme_Filter(t *testing.T) {
 	r := New("hello")
 
-	result := r.FilterGraphemes(func(g Grapheme) bool {
+	result, _ := r.FilterGraphemes(func(g Grapheme) bool {
 		return g.Text == "l"
 	})
 

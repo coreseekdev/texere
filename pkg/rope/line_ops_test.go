@@ -23,15 +23,15 @@ func TestRange_LineAt(t *testing.T) {
 	text := "Line 1\nLine 2\nLine 3"
 	r := New(text)
 
-	line := r.Line(0)
+	line, _ := r.Line(0)
 	// Note: Line() may or may not include trailing newline
 	// Adjust based on actual implementation
 	assert.True(t, line == "Line 1" || line == "Line 1\n")
 
-	line = r.Line(1)
+	line, _ = r.Line(1)
 	assert.True(t, line == "Line 2" || line == "Line 2\n")
 
-	line = r.Line(2)
+	line, _ = r.Line(2)
 	assert.Equal(t, "Line 3", line) // Last line shouldn't have newline
 }
 

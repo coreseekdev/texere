@@ -39,7 +39,7 @@ func BenchmarkInsert_Old(b *testing.B) {
 	pos := r.Length() / 2
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.Insert(pos, text)
+		_, _ = r.Insert(pos, text)
 	}
 }
 
@@ -49,7 +49,7 @@ func BenchmarkInsert_New(b *testing.B) {
 	pos := r.Length() / 2
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.InsertOptimized(pos, text)
+		_, _ = r.InsertOptimized(pos, text)
 	}
 }
 
@@ -59,7 +59,7 @@ func BenchmarkDelete_Old(b *testing.B) {
 	r := New(strings.Repeat("Hello, World! ", 100))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.Delete(10, 20)
+		_, _ = r.Delete(10, 20)
 	}
 }
 
@@ -67,7 +67,7 @@ func BenchmarkDelete_New(b *testing.B) {
 	r := New(strings.Repeat("Hello, World! ", 100))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.DeleteOptimized(10, 20)
+		_, _ = r.DeleteOptimized(10, 20)
 	}
 }
 
@@ -95,16 +95,16 @@ func TestOptimizationComparison(t *testing.T) {
 	}
 
 	// Test Insert - InsertOptimized kept separate
-	insert1 := r.Insert(500, "X")
-	insert2 := r.InsertOptimized(500, "X")
+	insert1, _ := r.Insert(500, "X")
+	insert2, _ := r.InsertOptimized(500, "X")
 
 	if insert1.String() != insert2.String() {
 		t.Error("Insert implementations differ!")
 	}
 
 	// Test Delete - DeleteOptimized kept separate
-	delete1 := r.Delete(100, 200)
-	delete2 := r.DeleteOptimized(100, 200)
+	delete1, _ := r.Delete(100, 200)
+	delete2, _ := r.DeleteOptimized(100, 200)
 
 	if delete1.String() != delete2.String() {
 		t.Error("Delete implementations differ!")
@@ -127,7 +127,7 @@ func TestMemory_Delete(t *testing.T) {
 
 	r := New(text)
 	for i := 0; i < 100; i++ {
-		r = r.Delete(10, 20)
+		r, _ = r.Delete(10, 20)
 	}
 
 	runtime.ReadMemStats(&m2)
@@ -139,7 +139,7 @@ func TestMemory_Delete(t *testing.T) {
 
 	r2 := New(text)
 	for i := 0; i < 100; i++ {
-		r2 = r2.DeleteOptimized(10, 20)
+		r2, _ = r2.DeleteOptimized(10, 20)
 	}
 
 	runtime.ReadMemStats(&m2)
@@ -161,7 +161,7 @@ func TestMemory_Insert(t *testing.T) {
 
 	r := New(text)
 	for i := 0; i < 100; i++ {
-		r = r.Insert(pos, insertText)
+		r, _ = r.Insert(pos, insertText)
 	}
 
 	runtime.ReadMemStats(&m2)
@@ -173,7 +173,7 @@ func TestMemory_Insert(t *testing.T) {
 
 	r2 := New(text)
 	for i := 0; i < 100; i++ {
-		r2 = r2.InsertOptimized(pos, insertText)
+		r2, _ = r2.InsertOptimized(pos, insertText)
 	}
 
 	runtime.ReadMemStats(&m2)

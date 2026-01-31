@@ -233,8 +233,8 @@ func TestOptimize(t *testing.T) {
 
 	t.Run("optimize after edits", func(t *testing.T) {
 		rope := New("Hello World")
-		rope = rope.Insert(5, " Beautiful") // "Hello Beautiful World"
-		rope = rope.Delete(5, 16)           // Remove " Beautiful " -> "HelloWorld"
+		rope, _ = rope.Insert(5, " Beautiful") // "Hello Beautiful World"
+		rope, _ = rope.Delete(5, 16)           // Remove " Beautiful " -> "HelloWorld"
 
 		optimized := rope.Optimize()
 		// Optimize should only restructure the tree, not change content
@@ -269,7 +269,7 @@ func TestCompact(t *testing.T) {
 		for i := 0; i < 100; i++ {
 			builder.Append("Line " + string(rune('A'+i%26)) + "\n")
 		}
-		rope := builder.Build()
+		rope, _ := builder.Build()
 
 		compacted := rope.Compact()
 
@@ -297,9 +297,9 @@ func TestCompact(t *testing.T) {
 	t.Run("compact after many edits", func(t *testing.T) {
 		rope := New("ABCDEFGHIJ")
 		// Perform many edits
-		rope = rope.Insert(5, "12345")
-		rope = rope.Delete(8, 13)
-		rope = rope.Insert(3, "XYZ")
+		rope, _ = rope.Insert(5, "12345")
+		rope, _ = rope.Delete(8, 13)
+		rope, _ = rope.Insert(3, "XYZ")
 
 		compacted := rope.Compact()
 
@@ -348,8 +348,8 @@ func TestValidate(t *testing.T) {
 
 	t.Run("validate after edits", func(t *testing.T) {
 		rope := New("ABCDEFGH")
-		rope = rope.Insert(4, "XXXX")
-		rope = rope.Delete(6, 10)
+		rope, _ = rope.Insert(4, "XXXX")
+		rope, _ = rope.Delete(6, 10)
 		err := rope.Validate()
 		if err != nil {
 			t.Errorf("Rope after edits validation failed: %v", err)
@@ -720,7 +720,7 @@ func TestFixTree_DeleteAtChunkBoundary(t *testing.T) {
 	// This should trigger the fix_tree_seam edge case
 	start := initialLen / 3
 	end := (initialLen / 3) * 2
-	r = r.Delete(start, end)
+	r, _ = r.Delete(start, end)
 
 	// Verify rope integrity
 	assert.True(t, r.Length() < initialLen)
@@ -741,7 +741,7 @@ func TestFixTree_MultipleDeletesAtBoundaries(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		builder.Append("Chunk" + string(rune('0'+i%10)))
 	}
-	r := builder.Build()
+	r, _ := builder.Build()
 
 	// Perform multiple deletions at different positions
 	for i := 0; i < 10; i++ {
@@ -755,7 +755,7 @@ func TestFixTree_MultipleDeletesAtBoundaries(t *testing.T) {
 			end = r.Length()
 		}
 
-		r = r.Delete(start, end)
+		r, _ = r.Delete(start, end)
 
 		// Verify integrity after each deletion
 		result := r.String()
@@ -770,7 +770,7 @@ func TestFixTree_DeleteMiddleOfRope(t *testing.T) {
 	for i := 0; i < 50; i++ {
 		builder.Append("Line " + string(rune('0'+i%10)) + "\n")
 	}
-	r := builder.Build()
+	r, _ := builder.Build()
 
 	originalLen := r.Length()
 
@@ -781,7 +781,7 @@ func TestFixTree_DeleteMiddleOfRope(t *testing.T) {
 		end = originalLen
 	}
 
-	r = r.Delete(start, end)
+	r, _ = r.Delete(start, end)
 
 	// Verify integrity
 	assert.True(t, r.Length() < originalLen)
@@ -794,12 +794,12 @@ func TestFixTree_DeleteFromBeginning(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		builder.Append("Test ")
 	}
-	r := builder.Build()
+	r, _ := builder.Build()
 
 	originalLen := r.Length()
 
 	// Delete from beginning
-	r = r.Delete(0, originalLen/10)
+	r, _ = r.Delete(0, originalLen/10)
 
 	// Verify integrity
 	assert.True(t, r.Length() < originalLen)
@@ -812,13 +812,13 @@ func TestFixTree_DeleteToEnd(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		builder.Append("Test ")
 	}
-	r := builder.Build()
+	r, _ := builder.Build()
 
 	originalLen := r.Length()
 
 	// Delete to end
 	start := originalLen - originalLen/10
-	r = r.Delete(start, originalLen)
+	r, _ = r.Delete(start, originalLen)
 
 	// Verify integrity
 	assert.True(t, r.Length() < originalLen)
@@ -832,7 +832,7 @@ func TestFixTree_SplitAtChunkBoundary(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		builder.Append("Chunk")
 	}
-	r := builder.Build()
+	r, _ := builder.Build()
 
 	// Split at various positions
 	positions := []int{0, r.Length() / 4, r.Length() / 2, r.Length() - 1}
@@ -842,7 +842,7 @@ func TestFixTree_SplitAtChunkBoundary(t *testing.T) {
 			continue
 		}
 
-		left, right := r.Split(pos)
+		left, right, _ := r.Split(pos)
 
 		// Verify both parts are valid
 		assert.True(t, utf8.ValidString(left.String()))
@@ -863,7 +863,7 @@ func TestFixTree_InsertAfterDelete(t *testing.T) {
 	for i := 0; i < 50; i++ {
 		builder.Append("Line " + string(rune('0'+i%10)) + "\n")
 	}
-	r := builder.Build()
+	r, _ := builder.Build()
 
 	// Delete a range
 	start := r.Length() / 3
@@ -871,10 +871,10 @@ func TestFixTree_InsertAfterDelete(t *testing.T) {
 	if end > r.Length() {
 		end = r.Length()
 	}
-	r = r.Delete(start, end)
+	r, _ = r.Delete(start, end)
 
 	// Insert at the same position
-	r = r.Insert(start, "New Content\n")
+	r, _ = r.Insert(start, "New Content\n")
 
 	// Verify integrity
 	assert.True(t, utf8.ValidString(r.String()))
@@ -889,7 +889,7 @@ func TestFixTree_ComplexMutations(t *testing.T) {
 		builder.Append(string(rune('0' + i%10)))
 		builder.Append("\n")
 	}
-	r := builder.Build()
+	r, _ := builder.Build()
 
 	// Perform complex sequence of operations
 	operations := []struct {
@@ -908,11 +908,11 @@ func TestFixTree_ComplexMutations(t *testing.T) {
 		switch op.op {
 		case "delete":
 			if op.arg2 <= r.Length() {
-				r = r.Delete(op.arg1, op.arg2)
+				r, _ = r.Delete(op.arg1, op.arg2)
 			}
 		case "insert":
 			if op.arg1 <= r.Length() {
-				r = r.Insert(op.arg1, op.text)
+				r, _ = r.Insert(op.arg1, op.text)
 			}
 		}
 
@@ -926,7 +926,7 @@ func TestFixTree_DeleteEntireRope(t *testing.T) {
 	r := New("Hello World Test")
 
 	// Delete entire rope
-	r = r.Delete(0, r.Length())
+	r, _ = r.Delete(0, r.Length())
 
 	// Should be empty
 	assert.Equal(t, 0, r.Length())
@@ -940,12 +940,12 @@ func TestFixTree_DeleteLargeRange(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		builder.Append("Chunk")
 	}
-	r := builder.Build()
+	r, _ := builder.Build()
 
 	originalLen := r.Length()
 
 	// Delete most of it
-	r = r.Delete(100, originalLen-100)
+	r, _ = r.Delete(100, originalLen-100)
 
 	// Verify integrity
 	assert.True(t, r.Length() < originalLen)

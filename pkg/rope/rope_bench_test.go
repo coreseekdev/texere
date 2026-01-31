@@ -17,7 +17,7 @@ func BenchmarkSplitOff_Small(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_, _ = r.SplitOff(r.Length() / 2)
+		_, _, _ = r.SplitOff(r.Length() / 2)
 	}
 }
 
@@ -27,7 +27,7 @@ func BenchmarkSplitOff_Medium(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_, _ = r.SplitOff(r.Length() / 2)
+		_, _, _ = r.SplitOff(r.Length() / 2)
 	}
 }
 
@@ -37,7 +37,7 @@ func BenchmarkSplitOff_Large(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_, _ = r.SplitOff(r.Length() / 2)
+		_, _, _ = r.SplitOff(r.Length() / 2)
 	}
 }
 

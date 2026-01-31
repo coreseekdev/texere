@@ -69,7 +69,7 @@ func TestInsertFast_BasicInsertion(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := New(tt.initial)
-			result := r.InsertFast(tt.pos, tt.text)
+			result, _ := r.InsertFast(tt.pos, tt.text)
 			assert.Equal(t, tt.expected, result.String())
 		})
 	}
@@ -78,7 +78,7 @@ func TestInsertFast_BasicInsertion(t *testing.T) {
 // TestInsertFast_NilRope tests InsertFast with nil rope
 func TestInsertFast_NilRope(t *testing.T) {
 	var r *Rope
-	result := r.InsertFast(0, "Hello")
+	result, _ := r.InsertFast(0, "Hello")
 	assert.Equal(t, "Hello", result.String())
 }
 
@@ -86,7 +86,7 @@ func TestInsertFast_NilRope(t *testing.T) {
 func TestInsertFast_SingleLeafOptimization(t *testing.T) {
 	r := New("Hello World")
 	// This should use single leaf optimization
-	result := r.InsertFast(5, " Beautiful")
+	result, _ := r.InsertFast(5, " Beautiful")
 	assert.Equal(t, "Hello Beautiful World", result.String())
 }
 
@@ -153,7 +153,7 @@ func TestDeleteFast_BasicDeletion(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := New(tt.initial)
-			result := r.DeleteFast(tt.start, tt.end)
+			result, _ := r.DeleteFast(tt.start, tt.end)
 			assert.Equal(t, tt.expected, result.String())
 		})
 	}
@@ -162,7 +162,7 @@ func TestDeleteFast_BasicDeletion(t *testing.T) {
 // TestDeleteFast_NilRope tests DeleteFast with nil rope
 func TestDeleteFast_NilRope(t *testing.T) {
 	var r *Rope
-	result := r.DeleteFast(0, 5)
+	result, _ := r.DeleteFast(0, 5)
 	assert.Nil(t, result)
 }
 
@@ -170,7 +170,7 @@ func TestDeleteFast_NilRope(t *testing.T) {
 func TestDeleteFast_SingleLeafOptimization(t *testing.T) {
 	r := New("Hello World")
 	// This should use single leaf optimization
-	result := r.DeleteFast(5, 6)
+	result, _ := r.DeleteFast(5, 6)
 	assert.Equal(t, "HelloWorld", result.String())
 }
 
@@ -230,7 +230,7 @@ func TestSliceFast_BasicSlicing(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := New(tt.text)
-			result := r.SliceFast(tt.start, tt.end)
+			result, _ := r.SliceFast(tt.start, tt.end)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -240,7 +240,7 @@ func TestSliceFast_BasicSlicing(t *testing.T) {
 func TestSliceFast_SingleLeafOptimization(t *testing.T) {
 	r := New("Hello World")
 	// This should use single leaf optimization
-	result := r.SliceFast(0, 5)
+	result, _ := r.SliceFast(0, 5)
 	assert.Equal(t, "Hello", result)
 }
 
@@ -248,7 +248,7 @@ func TestSliceFast_SingleLeafOptimization(t *testing.T) {
 func TestSliceToRope(t *testing.T) {
 	r := New("Hello World")
 
-	result := r.SliceToRope(0, 5)
+	result, _ := r.SliceToRope(0, 5)
 	assert.Equal(t, "Hello", result.String())
 	assert.Equal(t, 5, result.Length())
 }
@@ -258,15 +258,15 @@ func TestInsertIntoSingleLeaf(t *testing.T) {
 	r := New("Hello")
 
 	// Insert at position 0 (prepend)
-	result := r.InsertFast(0, "Hi ")
+	result, _ := r.InsertFast(0, "Hi ")
 	assert.Equal(t, "Hi Hello", result.String())
 
 	// Insert at end (append) - result now has length 8
-	result = result.InsertFast(8, " World")
+	result, _ = result.InsertFast(8, " World")
 	assert.Equal(t, "Hi Hello World", result.String())
 
 	// Insert in middle of original rope (position 2 in "Hello")
-	result = r.InsertFast(2, "XX")
+	result, _ = r.InsertFast(2, "XX")
 	assert.Equal(t, "HeXXllo", result.String())
 }
 
@@ -275,15 +275,15 @@ func TestDeleteFromSingleLeaf(t *testing.T) {
 	r := New("Hello World")
 
 	// Delete from beginning
-	result := r.DeleteFast(0, 6)
+	result, _ := r.DeleteFast(0, 6)
 	assert.Equal(t, "World", result.String())
 
 	// Delete from end
-	result = r.DeleteFast(5, 11)
+	result, _ = r.DeleteFast(5, 11)
 	assert.Equal(t, "Hello", result.String())
 
 	// Delete from middle
-	result = r.DeleteFast(2, 4)
+	result, _ = r.DeleteFast(2, 4)
 	assert.Equal(t, "Heo World", result.String())
 }
 
@@ -291,7 +291,7 @@ func TestDeleteFromSingleLeaf(t *testing.T) {
 func TestSliceSingleLeaf(t *testing.T) {
 	r := New("Hello World")
 
-	result := r.SliceFast(6, 11)
+	result, _ := r.SliceFast(6, 11)
 	assert.Equal(t, "World", result)
 }
 
@@ -351,7 +351,7 @@ func TestBatchInsert_SingleInsertion(t *testing.T) {
 		{Pos: 5, Text: " Beautiful"},
 	}
 
-	result := r.BatchInsert(inserts)
+	result, _ := r.BatchInsert(inserts)
 	assert.Equal(t, "Hello Beautiful World", result.String())
 }
 
@@ -364,7 +364,7 @@ func TestBatchInsert_MultipleInsertions(t *testing.T) {
 		{Pos: 3, Text: " quick"},
 	}
 
-	result := r.BatchInsert(inserts)
+	result, _ := r.BatchInsert(inserts)
 	assert.Equal(t, "The quick rope is fast", result.String())
 }
 
@@ -373,7 +373,7 @@ func TestBatchInsert_EmptySlice(t *testing.T) {
 	r := New("Hello")
 
 	inserts := []Insertion{}
-	result := r.BatchInsert(inserts)
+	result, _ := r.BatchInsert(inserts)
 
 	assert.Equal(t, "Hello", result.String())
 	assert.Equal(t, r, result) // Should return same rope
@@ -389,7 +389,7 @@ func TestBatchInsert_Ordering(t *testing.T) {
 		{Pos: 0, Text: "A"},
 	}
 
-	result := r.BatchInsert(inserts)
+	result, _ := r.BatchInsert(inserts)
 	assert.Equal(t, "AABCDE", result.String())
 }
 
@@ -402,7 +402,7 @@ func TestBatchInsert_WithUnicode(t *testing.T) {
 		{Pos: 2, Text: "🌍"},
 	}
 
-	result := r.BatchInsert(inserts)
+	result, _ := r.BatchInsert(inserts)
 	assert.Equal(t, "A你好B🌍C", result.String())
 }
 
@@ -414,7 +414,7 @@ func TestBatchDelete_SingleDeletion(t *testing.T) {
 		NewRange(5, 15),
 	}
 
-	result := r.BatchDelete(ranges)
+	result, _ := r.BatchDelete(ranges)
 	assert.Equal(t, "Hello World", result.String())
 }
 
@@ -428,7 +428,7 @@ func TestBatchDelete_MultipleDeletions(t *testing.T) {
 		NewRange(16, 20), // "fox " (including trailing space)
 	}
 
-	result := r.BatchDelete(ranges)
+	result, _ := r.BatchDelete(ranges)
 	assert.Equal(t, "The  jumps", result.String())
 }
 
@@ -437,7 +437,7 @@ func TestBatchDelete_EmptySlice(t *testing.T) {
 	r := New("Hello")
 
 	ranges := []Range{}
-	result := r.BatchDelete(ranges)
+	result, _ := r.BatchDelete(ranges)
 
 	assert.Equal(t, "Hello", result.String())
 }
@@ -452,7 +452,7 @@ func TestBatchDelete_Ordering(t *testing.T) {
 		NewRange(5, 7), // "FG"
 	}
 
-	result := r.BatchDelete(ranges)
+	result, _ := r.BatchDelete(ranges)
 	assert.Equal(t, "BE", result.String())
 }
 
@@ -466,7 +466,7 @@ func TestBatchDelete_WithUnicode(t *testing.T) {
 		NewRange(6, 8), // "世界"
 	}
 
-	result := r.BatchDelete(ranges)
+	result, _ := r.BatchDelete(ranges)
 	assert.Equal(t, "ABCD", result.String())
 }
 
@@ -601,7 +601,7 @@ func TestInsertFast_PreservesOriginal(t *testing.T) {
 	r := New("Hello")
 	originalStr := r.String()
 
-	result := r.InsertFast(2, "XX")
+	result, _ := r.InsertFast(2, "XX")
 
 	assert.Equal(t, "HeXXllo", result.String())
 	assert.Equal(t, originalStr, r.String())
@@ -612,7 +612,7 @@ func TestDeleteFast_PreservesOriginal(t *testing.T) {
 	r := New("Hello World")
 	originalStr := r.String()
 
-	result := r.DeleteFast(5, 6)
+	result, _ := r.DeleteFast(5, 6)
 
 	assert.Equal(t, "HelloWorld", result.String())
 	assert.Equal(t, originalStr, r.String())
@@ -630,7 +630,7 @@ func TestBatchInsert_LargeNumber(t *testing.T) {
 		}
 	}
 
-	result := r.BatchInsert(inserts)
+	result, _ := r.BatchInsert(inserts)
 	assert.Equal(t, 105, result.Length())
 }
 
@@ -645,7 +645,7 @@ func TestBatchDelete_LargeNumber(t *testing.T) {
 	ranges[3] = NewRange(15, 20)
 	ranges[4] = NewRange(20, 25)
 
-	result := r.BatchDelete(ranges)
+	result, _ := r.BatchDelete(ranges)
 	assert.Equal(t, 0, result.Length())
 }
 

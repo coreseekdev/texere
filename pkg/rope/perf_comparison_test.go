@@ -17,7 +17,7 @@ func BenchmarkInsert_Standard(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.Insert(pos, insertText)
+		_, _ = r.Insert(pos, insertText)
 	}
 }
 
@@ -30,7 +30,7 @@ func BenchmarkInsert_Optimized(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.InsertOptimized(pos, insertText)
+		_, _ = r.InsertOptimized(pos, insertText)
 	}
 }
 
@@ -42,7 +42,7 @@ func BenchmarkDelete_Standard(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.Delete(10, 20)
+		_, _ = r.Delete(10, 20)
 	}
 }
 
@@ -52,7 +52,7 @@ func BenchmarkDelete_Optimized(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.DeleteOptimized(10, 20)
+		_, _ = r.DeleteOptimized(10, 20)
 	}
 }
 
@@ -65,8 +65,8 @@ func BenchmarkMixedOps_Standard(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		r = r.Append(" X")
-		r = r.Insert(r.Length()/2, " Y")
-		r = r.Delete(0, 1)
+		r, _ = r.Insert(r.Length()/2, " Y")
+		r, _ = r.Delete(0, 1)
 	}
 }
 
@@ -92,7 +92,7 @@ func BenchmarkInsert_Large_Standard(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.Insert(pos, insertText)
+		_, _ = r.Insert(pos, insertText)
 	}
 }
 
@@ -104,7 +104,7 @@ func BenchmarkCowRope_Insert(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.Insert(r.Length()/2, "X")
+		_, _ = r.Insert(r.Length()/2, "X")
 	}
 }
 
@@ -114,7 +114,7 @@ func BenchmarkCowRope_Delete(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = r.Delete(10, 20)
+		_, _ = r.Delete(10, 20)
 	}
 }
 
@@ -124,9 +124,9 @@ func BenchmarkCowRope_ShareAndMutate(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		r1 := r.Insert(10, "X")
-		r2 := r.Insert(20, "Y")
-		r3 := r.Insert(30, "Z")
+		r1, _ := r.Insert(10, "X")
+		r2, _ := r.Insert(20, "Y")
+		r3, _ := r.Insert(30, "Z")
 		_ = r1
 		_ = r2
 		_ = r3
@@ -171,7 +171,7 @@ func BenchmarkAllocations_InsertStandard(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		r = r.Insert(r.Length()/2, "X")
+		r, _ = r.Insert(r.Length()/2, "X")
 	}
 }
 
@@ -182,7 +182,7 @@ func BenchmarkAllocations_DeleteStandard(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		r := New(text)
-		r = r.Delete(10, 20)
+		r, _ = r.Delete(10, 20)
 	}
 }
 
@@ -192,16 +192,16 @@ func TestCompareImplementations(t *testing.T) {
 	text := strings.Repeat("Hello, World! ", 50)
 
 	// Test Insert
-	r1 := New(text).Insert(50, "INSERTED")
-	r2 := New(text).InsertOptimized(50, "INSERTED")
+	r1, _ := New(text).Insert(50, "INSERTED")
+	r2, _ := New(text).InsertOptimized(50, "INSERTED")
 
 	if r1.String() != r2.String() {
 		t.Error("Insert implementations differ")
 	}
 
 	// Test Delete
-	r1 = New(text).Delete(10, 20)
-	r2 = New(text).DeleteOptimized(10, 20)
+	r1, _ = New(text).Delete(10, 20)
+	r2, _ = New(text).DeleteOptimized(10, 20)
 
 	if r1.String() != r2.String() {
 		t.Error("Delete implementations differ")
@@ -223,7 +223,7 @@ func TestCompareImplementations(t *testing.T) {
 func TestStress_ManyInserts(t *testing.T) {
 	r := New("")
 	for i := 0; i < 1000; i++ {
-		r = r.Insert(i, fmt.Sprintf("%d", i%10))
+		r, _ = r.Insert(i, fmt.Sprintf("%d", i%10))
 	}
 	expectedLen := 1000
 	if r.Length() != expectedLen {
@@ -240,7 +240,7 @@ func TestStress_ManyDeletes(t *testing.T) {
 
 	// Delete from beginning
 	for i := 0; i < 500; i++ {
-		r = r.Delete(0, 1)
+		r, _ = r.Delete(0, 1)
 	}
 
 	if r.Length() != 500 {

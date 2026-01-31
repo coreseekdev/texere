@@ -58,9 +58,12 @@ func TestSize(t *testing.T) {
 func TestSlice_Basic(t *testing.T) {
 	r := New("Hello World")
 
-	assert.Equal(t, "Hello", r.Slice(0, 5))
-	assert.Equal(t, "World", r.Slice(6, 11))
-	assert.Equal(t, "Hello World", r.Slice(0, 11))
+	s1, _ := r.Slice(0, 5)
+	assert.Equal(t, "Hello", s1)
+	s2, _ := r.Slice(6, 11)
+	assert.Equal(t, "World", s2)
+	s3, _ := r.Slice(0, 11)
+	assert.Equal(t, "Hello World", s3)
 }
 
 func TestSlice_OutOfBounds(t *testing.T) {
@@ -74,9 +77,12 @@ func TestSlice_OutOfBounds(t *testing.T) {
 func TestCharAt(t *testing.T) {
 	r := New("Hello")
 
-	assert.Equal(t, 'H', r.CharAt(0))
-	assert.Equal(t, 'e', r.CharAt(1))
-	assert.Equal(t, 'o', r.CharAt(4))
+	c1, _ := r.CharAt(0)
+	assert.Equal(t, 'H', c1)
+	c2, _ := r.CharAt(1)
+	assert.Equal(t, 'e', c2)
+	c3, _ := r.CharAt(4)
+	assert.Equal(t, 'o', c3)
 }
 
 func TestCharAt_OutOfBounds(t *testing.T) {
@@ -88,16 +94,19 @@ func TestCharAt_OutOfBounds(t *testing.T) {
 func TestByteAt(t *testing.T) {
 	r := New("Hello")
 
-	assert.Equal(t, byte('H'), r.ByteAt(0))
-	assert.Equal(t, byte('e'), r.ByteAt(1))
-	assert.Equal(t, byte('o'), r.ByteAt(4))
+	b1, _ := r.ByteAt(0)
+	assert.Equal(t, byte('H'), b1)
+	b2, _ := r.ByteAt(1)
+	assert.Equal(t, byte('e'), b2)
+	b3, _ := r.ByteAt(4)
+	assert.Equal(t, byte('o'), b3)
 }
 
 // ========== Insert Tests ==========
 
 func TestInsert_Start(t *testing.T) {
 	r := New("World")
-	r2 := r.Insert(0, "Hello ")
+	r2, _ := r.Insert(0, "Hello ")
 
 	assert.Equal(t, "Hello World", r2.String())
 	assert.Equal(t, "World", r.String()) // Original unchanged
@@ -105,21 +114,21 @@ func TestInsert_Start(t *testing.T) {
 
 func TestInsert_Middle(t *testing.T) {
 	r := New("Hello World")
-	r2 := r.Insert(5, " Beautiful")
+	r2, _ := r.Insert(5, " Beautiful")
 
 	assert.Equal(t, "Hello Beautiful World", r2.String())
 }
 
 func TestInsert_End(t *testing.T) {
 	r := New("Hello")
-	r2 := r.Insert(5, " World")
+	r2, _ := r.Insert(5, " World")
 
 	assert.Equal(t, "Hello World", r2.String())
 }
 
 func TestInsert_EmptyString(t *testing.T) {
 	r := New("Hello")
-	r2 := r.Insert(2, "")
+	r2, _ := r.Insert(2, "")
 
 	assert.Same(t, r, r2)
 }
@@ -134,7 +143,7 @@ func TestInsert_OutOfBounds(t *testing.T) {
 
 func TestDelete_Start(t *testing.T) {
 	r := New("Hello World")
-	r2 := r.Delete(0, 6)
+	r2, _ := r.Delete(0, 6)
 
 	assert.Equal(t, "World", r2.String())
 	assert.Equal(t, "Hello World", r.String()) // Original unchanged
@@ -142,21 +151,21 @@ func TestDelete_Start(t *testing.T) {
 
 func TestDelete_Middle(t *testing.T) {
 	r := New("Hello World")
-	r2 := r.Delete(5, 6)
+	r2, _ := r.Delete(5, 6)
 
 	assert.Equal(t, "HelloWorld", r2.String())
 }
 
 func TestDelete_End(t *testing.T) {
 	r := New("Hello World")
-	r2 := r.Delete(5, 11)
+	r2, _ := r.Delete(5, 11)
 
 	assert.Equal(t, "Hello", r2.String())
 }
 
 func TestDelete_All(t *testing.T) {
 	r := New("Hello World")
-	r2 := r.Delete(0, r.Length())
+	r2, _ := r.Delete(0, r.Length())
 
 	assert.Equal(t, "", r2.String())
 	assert.Equal(t, 0, r2.Length())
@@ -164,7 +173,7 @@ func TestDelete_All(t *testing.T) {
 
 func TestDelete_EmptyRange(t *testing.T) {
 	r := New("Hello")
-	r2 := r.Delete(2, 2)
+	r2, _ := r.Delete(2, 2)
 
 	assert.Same(t, r, r2)
 }
@@ -180,14 +189,14 @@ func TestDelete_OutOfBounds(t *testing.T) {
 
 func TestReplace_Basic(t *testing.T) {
 	r := New("Hello World")
-	r2 := r.Replace(6, 11, "Go")
+	r2, _ := r.Replace(6, 11, "Go")
 
 	assert.Equal(t, "Hello Go", r2.String())
 }
 
 func TestReplace_SameLength(t *testing.T) {
 	r := New("Hello World")
-	r2 := r.Replace(0, 5, "World")
+	r2, _ := r.Replace(0, 5, "World")
 
 	assert.Equal(t, "World World", r2.String())
 }
@@ -196,7 +205,7 @@ func TestReplace_SameLength(t *testing.T) {
 
 func TestSplit_Basic(t *testing.T) {
 	r := New("Hello World")
-	left, right := r.Split(5)
+	left, right, _ := r.Split(5)
 
 	assert.Equal(t, "Hello", left.String())
 	assert.Equal(t, " World", right.String())
@@ -204,7 +213,7 @@ func TestSplit_Basic(t *testing.T) {
 
 func TestSplit_Start(t *testing.T) {
 	r := New("Hello World")
-	left, right := r.Split(0)
+	left, right, _ := r.Split(0)
 
 	assert.Equal(t, "", left.String())
 	assert.Equal(t, "Hello World", right.String())
@@ -212,7 +221,7 @@ func TestSplit_Start(t *testing.T) {
 
 func TestSplit_End(t *testing.T) {
 	r := New("Hello World")
-	left, right := r.Split(r.Length())
+	left, right, _ := r.Split(r.Length())
 
 	assert.Equal(t, "Hello World", left.String())
 	assert.Equal(t, "", right.String())
@@ -318,8 +327,10 @@ func TestUTF8_Chinese(t *testing.T) {
 	assert.Equal(t, "你好世界", r.String())
 
 	// Test slicing with UTF-8
-	assert.Equal(t, "你好", r.Slice(0, 2))
-	assert.Equal(t, "世界", r.Slice(2, 4))
+	s1, _ := r.Slice(0, 2)
+	assert.Equal(t, "你好", s1)
+	s2, _ := r.Slice(2, 4)
+	assert.Equal(t, "世界", s2)
 }
 
 func TestUTF8_Emoji(t *testing.T) {
@@ -329,8 +340,10 @@ func TestUTF8_Emoji(t *testing.T) {
 	assert.Equal(t, "Hello 👋 World", r.String())
 
 	// Test slicing with emoji
-	assert.Equal(t, "Hello", r.Slice(0, 5))
-	assert.Equal(t, "👋", r.Slice(6, 7))
+	s1, _ := r.Slice(0, 5)
+	assert.Equal(t, "Hello", s1)
+	s2, _ := r.Slice(6, 7)
+	assert.Equal(t, "👋", s2)
 }
 
 func TestUTF8_Mixed(t *testing.T) {
@@ -348,7 +361,7 @@ func TestLargeText_Insert(t *testing.T) {
 	r := New(large)
 
 	// Insert in the middle
-	r2 := r.Insert(512*1024, "INSERTED")
+	r2, _ := r.Insert(512*1024, "INSERTED")
 
 	assert.Equal(t, 1024*1024+8, r2.Length()) // "INSERTED" has 8 characters
 	assert.Contains(t, r2.String(), "INSERTED")
@@ -360,7 +373,7 @@ func TestLargeText_Delete(t *testing.T) {
 	r := New(large)
 
 	// Delete a chunk from the middle
-	r2 := r.Delete(512*1024, 512*1024+1024)
+	r2, _ := r.Delete(512*1024, 512*1024+1024)
 
 	assert.Equal(t, 1024*1024-1024, r2.Length())
 }
@@ -371,7 +384,7 @@ func TestLargeText_Split(t *testing.T) {
 	r := New(large)
 
 	// Split in half
-	left, right := r.Split(512 * 1024)
+	left, right, _ := r.Split(512 * 1024)
 
 	assert.Equal(t, 512*1024, left.Length())
 	assert.Equal(t, 512*1024, right.Length())
@@ -381,7 +394,7 @@ func TestLargeText_Split(t *testing.T) {
 
 func TestImmutability_Insert(t *testing.T) {
 	r1 := New("Hello")
-	r2 := r1.Insert(5, " World")
+	r2, _ := r1.Insert(5, " World")
 
 	assert.Equal(t, "Hello", r1.String())
 	assert.Equal(t, "Hello World", r2.String())
@@ -389,7 +402,7 @@ func TestImmutability_Insert(t *testing.T) {
 
 func TestImmutability_Delete(t *testing.T) {
 	r1 := New("Hello World")
-	r2 := r1.Delete(5, 11)
+	r2, _ := r1.Delete(5, 11)
 
 	assert.Equal(t, "Hello World", r1.String())
 	assert.Equal(t, "Hello", r2.String())
@@ -397,7 +410,7 @@ func TestImmutability_Delete(t *testing.T) {
 
 func TestImmutability_Replace(t *testing.T) {
 	r1 := New("Hello World")
-	r2 := r1.Replace(6, 11, "Go")
+	r2, _ := r1.Replace(6, 11, "Go")
 
 	assert.Equal(t, "Hello World", r1.String())
 	assert.Equal(t, "Hello Go", r2.String())
@@ -419,13 +432,14 @@ func TestEdgeCase_SingleChar(t *testing.T) {
 
 	assert.Equal(t, 1, r.Length())
 	assert.Equal(t, "a", r.String())
-	assert.Equal(t, 'a', r.CharAt(0))
+	c, _ := r.CharAt(0)
+	assert.Equal(t, 'a', c)
 }
 
 func TestEdgeCase_ManyInserts(t *testing.T) {
 	r := Empty()
 	for i := 0; i < 1000; i++ {
-		r = r.Insert(i, "a")
+		r, _ = r.Insert(i, "a")
 	}
 
 	assert.Equal(t, 1000, r.Length())
@@ -435,7 +449,7 @@ func TestEdgeCase_ManyInserts(t *testing.T) {
 func TestEdgeCase_ManyDeletes(t *testing.T) {
 	r := New(strings.Repeat("a", 1000))
 	for i := 0; i < 1000; i++ {
-		r = r.Delete(0, 1)
+		r, _ = r.Delete(0, 1)
 	}
 
 	assert.Equal(t, 0, r.Length())
@@ -466,9 +480,12 @@ func TestLineCount(t *testing.T) {
 func TestLine(t *testing.T) {
 	r := New("Line1\nLine2\nLine3")
 
-	assert.Equal(t, "Line1", r.Line(0))
-	assert.Equal(t, "Line2", r.Line(1))
-	assert.Equal(t, "Line3", r.Line(2))
+	l1, _ := r.Line(0)
+	assert.Equal(t, "Line1", l1)
+	l2, _ := r.Line(1)
+	assert.Equal(t, "Line2", l2)
+	l3, _ := r.Line(2)
+	assert.Equal(t, "Line3", l3)
 }
 
 func TestLineStart(t *testing.T) {
@@ -482,9 +499,12 @@ func TestLineStart(t *testing.T) {
 func TestLineEnd(t *testing.T) {
 	r := New("Line1\nLine2\nLine3")
 
-	assert.Equal(t, 5, r.LineEnd(0))  // "Line1"
-	assert.Equal(t, 11, r.LineEnd(1)) // "Line2"
-	assert.Equal(t, 17, r.LineEnd(2)) // "Line3"
+	end, _ := r.LineEnd(0)
+	assert.Equal(t, 5, end)  // "Line1"
+	end, _ = r.LineEnd(1)
+	assert.Equal(t, 11, end) // "Line2"
+	end, _ = r.LineEnd(2)
+	assert.Equal(t, 17, end) // "Line3"
 }
 
 func TestLineAtChar(t *testing.T) {
@@ -505,7 +525,7 @@ func TestBuilder_Append(t *testing.T) {
 	b.Append(" ")
 	b.Append("World")
 
-	r := b.Build()
+	r, _ := b.Build()
 	assert.Equal(t, "Hello World", r.String())
 }
 
@@ -514,7 +534,7 @@ func TestBuilder_Insert(t *testing.T) {
 	b.Append("Hello World")
 	b.Insert(5, " Beautiful")
 
-	r := b.Build()
+	r, _ := b.Build()
 	assert.Equal(t, "Hello Beautiful World", r.String())
 }
 
@@ -523,7 +543,7 @@ func TestBuilder_Delete(t *testing.T) {
 	b.Append("Hello Beautiful World")
 	b.Delete(6, 16) // Delete " Beautiful" (keep the first space)
 
-	r := b.Build()
+	r, _ := b.Build()
 	assert.Equal(t, "Hello World", r.String())
 }
 
@@ -532,12 +552,12 @@ func TestBuilder_Reuse(t *testing.T) {
 
 	// First build
 	b.Append("Hello")
-	r1 := b.Build()
+	r1, _ := b.Build()
 	assert.Equal(t, "Hello", r1.String())
 
 	// Reuse for second build
 	b.Append(" World")
-	r2 := b.Build()
+	r2, _ := b.Build()
 	assert.Equal(t, "Hello World", r2.String())
 
 	// First rope should be unchanged
@@ -550,7 +570,7 @@ func TestBuilder_WriteInterface(t *testing.T) {
 	b.Write([]byte("Hello"))
 	b.WriteString(" World")
 
-	r := b.Build()
+	r, _ := b.Build()
 	assert.Equal(t, "Hello World", r.String())
 }
 
@@ -746,8 +766,8 @@ func TestProperty_InsertThenDelete(t *testing.T) {
 
 	for _, original := range tests {
 		r := New(original)
-		r2 := r.Insert(2, "XX")
-		r3 := r2.Delete(2, 4)
+		r2, _ := r.Insert(2, "XX")
+		r3, _ := r2.Delete(2, 4)
 
 		assert.Equal(t, r.String(), r3.String(),
 			"Insert then delete should return original")
@@ -765,7 +785,7 @@ func TestProperty_SplitConcat(t *testing.T) {
 	for _, text := range tests {
 		r := New(text)
 		pos := r.Length() / 2
-		left, right := r.Split(pos)
+		left, right, _ := r.Split(pos)
 		merged := left.Concat(right)
 
 		assert.Equal(t, r.String(), merged.String(),
@@ -779,7 +799,7 @@ func TestProperty_MultipleInserts(t *testing.T) {
 
 	for i := 0; i < 100; i++ {
 		char := string(rune('a' + (i % 26)))
-		r = r.Insert(i, char)
+		r, _ = r.Insert(i, char)
 		expected += char
 	}
 
@@ -800,7 +820,7 @@ func BenchmarkRope_Insert_Small(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		r = r.Insert(5, "X")
+		r, _ = r.Insert(5, "X")
 	}
 }
 
@@ -809,7 +829,7 @@ func BenchmarkRope_Delete_Small(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		r = r.Delete(0, 1)
+		r, _ = r.Delete(0, 1)
 	}
 }
 
@@ -818,7 +838,7 @@ func BenchmarkRope_Slice(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		_ = r.Slice(100, 9000)
+		_, _ = r.Slice(100, 9000)
 	}
 }
 
@@ -862,7 +882,7 @@ func TestStress_RandomInsertDelete(t *testing.T) {
 			pos = rand.Intn(r.Length() + 1)
 		}
 
-		r = r.Insert(pos, text)
+		r, _ = r.Insert(pos, text)
 
 		// Update expected text
 		if pos == 0 {
@@ -897,7 +917,7 @@ func TestStress_RandomInsertDelete(t *testing.T) {
 			originalText = string(runes[:start]) + string(runes[end:])
 		}
 
-		r = r.Delete(start, end)
+		r, _ = r.Delete(start, end)
 
 		// Verify integrity
 		assert.Equal(t, len([]rune(originalText)), r.Length())
@@ -911,7 +931,7 @@ func TestStress_LargeInsertAtBeginning(t *testing.T) {
 
 	// Insert 100 times at beginning
 	for i := 0; i < 100; i++ {
-		r = r.Insert(0, "x")
+		r, _ = r.Insert(0, "x")
 		expected := strings.Repeat("x", i+1)
 		assert.Equal(t, expected, r.String())
 	}
@@ -925,7 +945,7 @@ func TestStress_LargeInsertAtEnd(t *testing.T) {
 
 	// Insert 100 times at end
 	for i := 0; i < 100; i++ {
-		r = r.Insert(r.Length(), "x")
+		r, _ = r.Insert(r.Length(), "x")
 	}
 
 	assert.Equal(t, 100, r.Length())
@@ -941,7 +961,7 @@ func TestStress_AlternatingInsertDelete(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		// Insert at random position
 		pos := rand.Intn(r.Length() + 1)
-		r = r.Insert(pos, "X")
+		r, _ = r.Insert(pos, "X")
 
 		// Delete from random position
 		if r.Length() > 5 {
@@ -950,7 +970,7 @@ func TestStress_AlternatingInsertDelete(t *testing.T) {
 			if end > r.Length() {
 				end = r.Length()
 			}
-			r = r.Delete(start, end)
+			r, _ = r.Delete(start, end)
 		}
 	}
 
@@ -978,7 +998,7 @@ func TestStress_RandomSplits(t *testing.T) {
 		}
 
 		pos := rand.Intn(r.Length())
-		left, right := r.Split(pos)
+		left, right, _ := r.Split(pos)
 
 		// Verify split was correct
 		combined := left.String() + right.String()
@@ -998,7 +1018,7 @@ func TestStress_SplitAndMerge(t *testing.T) {
 	r := New("Hello World Test String")
 
 	// Split at position 6
-	left, right := r.Split(6)
+	left, right, _ := r.Split(6)
 	assert.Equal(t, "Hello ", left.String())
 	assert.Equal(t, "World Test String", right.String())
 
@@ -1071,7 +1091,7 @@ func TestStress_DeepTreeRandomAccess(t *testing.T) {
 	// Perform random char access
 	for i := 0; i < 100; i++ {
 		pos := rand.Intn(r.Length())
-		ch := r.CharAt(pos)
+		ch, _ := r.CharAt(pos)
 		assert.True(t, ch != 0)
 	}
 }
@@ -1091,7 +1111,7 @@ func TestIntegrity_AfterManyMutations(t *testing.T) {
 			if r.Length() < 10000 { // Cap size
 				text := randomString(rand.Intn(10))
 				pos := rand.Intn(r.Length() + 1)
-				r = r.Insert(pos, text)
+				r, _ = r.Insert(pos, text)
 			}
 
 		case 1: // Delete
@@ -1101,7 +1121,7 @@ func TestIntegrity_AfterManyMutations(t *testing.T) {
 				if end > r.Length() {
 					end = r.Length()
 				}
-				r = r.Delete(start, end)
+				r, _ = r.Delete(start, end)
 			}
 
 		case 2: // Append
@@ -1131,13 +1151,13 @@ func TestStress_UnicodeMutations(t *testing.T) {
 			// Insert unicode
 			unicodeText := "🌍🌎🌏"
 			pos := rand.Intn(r.Length() + 1)
-			r = r.Insert(pos, unicodeText)
+			r, _ = r.Insert(pos, unicodeText)
 		} else {
 			// Delete random range
 			if r.Length() > 5 {
 				start := rand.Intn(r.Length() - 4)
 				end := start + rand.Intn(r.Length()-start)
-				r = r.Delete(start, end)
+				r, _ = r.Delete(start, end)
 			}
 		}
 

@@ -23,13 +23,13 @@ func TestChangeSetInvert(t *testing.T) {
 			},
 			verify: func(t *testing.T, original *Rope, cs, inverted *ChangeSet) {
 				// Apply original changeset
-				modified := cs.Apply(original)
+				modified, _ := cs.Apply(original)
 				if modified.String() != "Hello World" {
 					t.Errorf("Apply failed: got %q", modified.String())
 				}
 
 				// Apply inverted changeset should get back original
-				reverted := inverted.Apply(modified)
+				reverted, _ := inverted.Apply(modified)
 				if reverted.String() != original.String() {
 					t.Errorf("Invert failed: got %q, want %q", reverted.String(), original.String())
 				}
@@ -45,12 +45,12 @@ func TestChangeSetInvert(t *testing.T) {
 				return cs
 			},
 			verify: func(t *testing.T, original *Rope, cs, inverted *ChangeSet) {
-				modified := cs.Apply(original)
+				modified, _ := cs.Apply(original)
 				if modified.String() != "Hello" {
 					t.Errorf("Apply failed: got %q", modified.String())
 				}
 
-				reverted := inverted.Apply(modified)
+				reverted, _ := inverted.Apply(modified)
 				if reverted.String() != original.String() {
 					t.Errorf("Invert failed: got %q, want %q", reverted.String(), original.String())
 				}
@@ -67,12 +67,12 @@ func TestChangeSetInvert(t *testing.T) {
 				return cs
 			},
 			verify: func(t *testing.T, original *Rope, cs, inverted *ChangeSet) {
-				modified := cs.Apply(original)
+				modified, _ := cs.Apply(original)
 				if modified.String() != "Hello Beautiful" {
 					t.Errorf("Apply failed: got %q", modified.String())
 				}
 
-				reverted := inverted.Apply(modified)
+				reverted, _ := inverted.Apply(modified)
 				if reverted.String() != original.String() {
 					t.Errorf("Invert failed: got %q, want %q", reverted.String(), original.String())
 				}
@@ -91,8 +91,8 @@ func TestChangeSetInvert(t *testing.T) {
 				return cs
 			},
 			verify: func(t *testing.T, original *Rope, cs, inverted *ChangeSet) {
-				modified := cs.Apply(original)
-				reverted := inverted.Apply(modified)
+				modified, _ := cs.Apply(original)
+				reverted, _ := inverted.Apply(modified)
 				if reverted.String() != original.String() {
 					t.Errorf("Invert failed: got %q, want %q", reverted.String(), original.String())
 				}
@@ -105,7 +105,7 @@ func TestChangeSetInvert(t *testing.T) {
 				return NewChangeSet(5)
 			},
 			verify: func(t *testing.T, original *Rope, cs, inverted *ChangeSet) {
-				reverted := inverted.Apply(original)
+				reverted, _ := inverted.Apply(original)
 				if reverted.String() != original.String() {
 					t.Errorf("Invert empty failed: got %q, want %q", reverted.String(), original.String())
 				}
@@ -117,7 +117,7 @@ func TestChangeSetInvert(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			original := New(tt.initial)
 			cs := tt.buildCS(original)
-			inverted := cs.Invert(original)
+			inverted, _ := cs.Invert(original)
 			tt.verify(t, original, cs, inverted)
 		})
 	}
@@ -148,7 +148,7 @@ func TestChangeSetCompose(t *testing.T) {
 			},
 			verify: func(t *testing.T, original *Rope, cs1, cs2, composed *ChangeSet) {
 				// Both are just retain, so composed should be retain
-				result := composed.Apply(original)
+				result, _ := composed.Apply(original)
 				if result.String() != original.String() {
 					t.Errorf("Compose retain failed: got %q, want %q", result.String(), original.String())
 				}
@@ -170,11 +170,11 @@ func TestChangeSetCompose(t *testing.T) {
 				return cs
 			},
 			verify: func(t *testing.T, original *Rope, cs1, cs2, composed *ChangeSet) {
-				after1 := cs1.Apply(original)
-				after2 := cs2.Apply(after1)
+				after1, _ := cs1.Apply(original)
+				after2, _ := cs2.Apply(after1)
 				expected := after2.String()
 
-				result := composed.Apply(original)
+				result, _ := composed.Apply(original)
 				if result.String() != expected {
 					t.Errorf("Compose failed: got %q, want %q", result.String(), expected)
 				}
@@ -193,8 +193,9 @@ func TestChangeSetCompose(t *testing.T) {
 				return cs
 			},
 			verify: func(t *testing.T, original *Rope, cs1, cs2, composed *ChangeSet) {
-				result := composed.Apply(original)
-				expected := cs2.Apply(original).String()
+				result, _ := composed.Apply(original)
+				tmp, _ := cs2.Apply(original)
+				expected := tmp.String()
 				if result.String() != expected {
 					t.Errorf("Compose with empty failed: got %q, want %q", result.String(), expected)
 				}
@@ -213,8 +214,9 @@ func TestChangeSetCompose(t *testing.T) {
 				return NewChangeSet(10)
 			},
 			verify: func(t *testing.T, original *Rope, cs1, cs2, composed *ChangeSet) {
-				result := composed.Apply(original)
-				expected := cs1.Apply(original).String()
+				result, _ := composed.Apply(original)
+				tmp, _ := cs1.Apply(original)
+				expected := tmp.String()
 				if result.String() != expected {
 					t.Errorf("Compose with empty failed: got %q, want %q", result.String(), expected)
 				}
@@ -226,7 +228,7 @@ func TestChangeSetCompose(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			original := New(tt.initial)
 			cs1 := tt.buildCS1(original)
-			after1 := cs1.Apply(original)
+			after1, _ := cs1.Apply(original)
 			cs2 := tt.buildCS2(after1)
 			composed := cs1.Compose(cs2)
 			tt.verify(t, original, cs1, cs2, composed)
@@ -322,7 +324,7 @@ func TestChangeSetMapPosition(t *testing.T) {
 			}
 
 			// Verify round-trip with Apply
-			modified := cs.Apply(rope)
+			modified, _ := cs.Apply(rope)
 			if mapped <= modified.Length() {
 				// Position should be valid
 			}
@@ -489,7 +491,7 @@ func TestChangeSetApplyTests(t *testing.T) {
 	t.Run("apply to nil rope", func(t *testing.T) {
 		cs := NewChangeSet(5)
 		cs.Retain(5)
-		result := cs.Apply(nil)
+		result, _ := cs.Apply(nil)
 		if result != nil {
 			t.Error("Applying to nil rope should return nil")
 		}
@@ -500,7 +502,7 @@ func TestChangeSetApplyTests(t *testing.T) {
 		cs := NewChangeSet(10) // Wrong length
 		cs.Retain(10)
 
-		result := cs.Apply(rope)
+		result, _ := cs.Apply(rope)
 		// Should return original rope when length mismatches
 		if result.String() != "Hello" {
 			t.Error("Apply with length mismatch should return original")
@@ -512,7 +514,7 @@ func TestChangeSetApplyTests(t *testing.T) {
 		cs := NewChangeSet(5)
 		// Don't add any operations
 
-		result := cs.Apply(rope)
+		result, _ := cs.Apply(rope)
 		if result.String() != "Hello" {
 			t.Errorf("Apply empty changeset: got %q, want %q", result.String(), "Hello")
 		}
@@ -561,11 +563,11 @@ func TestComplexInvertScenario(t *testing.T) {
 		cs.Retain(19) // " over the lazy dog"
 
 		// Apply
-		modified := cs.Apply(original)
+		modified, _ := cs.Apply(original)
 
 		// Invert and revert
-		inverted := cs.Invert(original)
-		reverted := inverted.Apply(modified)
+		inverted, _ := cs.Invert(original)
+		reverted, _ := inverted.Apply(modified)
 
 		if reverted.String() != original.String() {
 			t.Errorf("Complex invert failed: got %q, want %q", reverted.String(), original.String())
@@ -591,12 +593,12 @@ func TestCompositionPreservesContent(t *testing.T) {
 		cs2.Insert("Universe")
 
 		// Apply separately
-		after1 := cs1.Apply(original)
-		after2 := cs2.Apply(after1)
+		after1, _ := cs1.Apply(original)
+		after2, _ := cs2.Apply(after1)
 
 		// Apply composed
 		composed := cs1.Compose(cs2)
-		composedResult := composed.Apply(original)
+		composedResult, _ := composed.Apply(original)
 
 		if composedResult.String() != after2.String() {
 			t.Errorf("Compose didn't preserve: got %q, want %q",

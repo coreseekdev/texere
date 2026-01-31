@@ -61,7 +61,7 @@ func TestBuilderAppend(t *testing.T) {
 			for _, s := range tt.appends {
 				builder.Append(s)
 			}
-			rope := builder.Build()
+			rope, _ := builder.Build()
 			if rope.String() != tt.expected {
 				t.Errorf("Expected %q, got %q", tt.expected, rope.String())
 			}
@@ -75,7 +75,7 @@ func TestBuilderAppendBytes(t *testing.T) {
 		builder := NewBuilder()
 		data := []byte("Hello World")
 		builder.AppendBytes(data)
-		rope := builder.Build()
+		rope, _ := builder.Build()
 		if rope.String() != "Hello World" {
 			t.Errorf("Expected 'Hello World', got %q", rope.String())
 		}
@@ -84,7 +84,7 @@ func TestBuilderAppendBytes(t *testing.T) {
 	t.Run("append empty bytes", func(t *testing.T) {
 		builder := NewBuilder()
 		builder.AppendBytes([]byte{})
-		rope := builder.Build()
+		rope, _ := builder.Build()
 		if rope.Length() != 0 {
 			t.Errorf("Expected length 0, got %d", rope.Length())
 		}
@@ -95,7 +95,7 @@ func TestBuilderAppendBytes(t *testing.T) {
 		builder.AppendBytes([]byte("Hello"))
 		builder.AppendBytes([]byte(" "))
 		builder.AppendBytes([]byte("World"))
-		rope := builder.Build()
+		rope, _ := builder.Build()
 		if rope.String() != "Hello World" {
 			t.Errorf("Expected 'Hello World', got %q", rope.String())
 		}
@@ -157,7 +157,7 @@ func TestBuilderInsert(t *testing.T) {
 			for _, ins := range tt.inserts {
 				builder.Insert(ins.pos, ins.text)
 			}
-			rope := builder.Build()
+			rope, _ := builder.Build()
 			if rope.String() != tt.expected {
 				t.Errorf("Expected %q, got %q", tt.expected, rope.String())
 			}
@@ -208,7 +208,7 @@ func TestBuilderDelete(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			builder := NewBuilderFromRope(New(tt.initial))
 			builder.Delete(tt.start, tt.end)
-			rope := builder.Build()
+			rope, _ := builder.Build()
 			if rope.String() != tt.expected {
 				t.Errorf("Expected %q, got %q", tt.expected, rope.String())
 			}
@@ -272,7 +272,7 @@ func TestBuilderReplace(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			builder := NewBuilderFromRope(New(tt.initial))
 			builder.Replace(tt.start, tt.end, tt.text)
-			rope := builder.Build()
+			rope, _ := builder.Build()
 			if rope.String() != tt.expected {
 				t.Errorf("Expected %q, got %q", tt.expected, rope.String())
 			}
@@ -296,7 +296,7 @@ func TestBuilderReset(t *testing.T) {
 		}
 
 		builder.Append("New")
-		rope := builder.Build()
+		rope, _ := builder.Build()
 		if rope.String() != "New" {
 			t.Errorf("Expected 'New', got %q", rope.String())
 		}
@@ -312,7 +312,7 @@ func TestBuilderResetFromRope(t *testing.T) {
 		newRope := New("World")
 		builder.ResetFromRope(newRope)
 
-		rope := builder.Build()
+		rope, _ := builder.Build()
 		if rope.String() != "World" {
 			t.Errorf("Expected 'World', got %q", rope.String())
 		}
@@ -326,7 +326,7 @@ func TestBuilderResetFromRope(t *testing.T) {
 		builder.ResetFromRope(newRope)
 		builder.Append("!")
 
-		rope := builder.Build()
+		rope, _ := builder.Build()
 		if rope.String() != "World!" {
 			t.Errorf("Expected 'World!', got %q", rope.String())
 		}
@@ -338,7 +338,7 @@ func TestBuilderInsertString(t *testing.T) {
 	t.Run("insert string at position", func(t *testing.T) {
 		builder := NewBuilderFromRope(New("AC"))
 		builder.InsertString(1, "B")
-		rope := builder.Build()
+		rope, _ := builder.Build()
 		if rope.String() != "ABC" {
 			t.Errorf("Expected 'ABC', got %q", rope.String())
 		}
@@ -347,7 +347,7 @@ func TestBuilderInsertString(t *testing.T) {
 	t.Run("method chaining", func(t *testing.T) {
 		builder := NewBuilderFromRope(New("ACE"))
 		builder.InsertString(1, "B").InsertString(3, "D")
-		rope := builder.Build()
+		rope, _ := builder.Build()
 		if rope.String() != "ABCDE" {
 			t.Errorf("Expected 'ABCDE', got %q", rope.String())
 		}
@@ -390,7 +390,7 @@ func TestBuilderInsertRune(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			builder := NewBuilderFromRope(New(tt.initial))
 			builder.InsertRune(tt.position, tt.rune)
-			rope := builder.Build()
+			rope, _ := builder.Build()
 			if rope.String() != tt.expected {
 				t.Errorf("Expected %q, got %q", tt.expected, rope.String())
 			}
@@ -427,7 +427,7 @@ func TestBuilderInsertByte(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			builder := NewBuilderFromRope(New(tt.initial))
 			builder.InsertByte(tt.position, tt.byteVal)
-			rope := builder.Build()
+			rope, _ := builder.Build()
 			if rope.String() != tt.expected {
 				t.Errorf("Expected %q, got %q", tt.expected, rope.String())
 			}
@@ -441,7 +441,7 @@ func TestBuilderAppendRune(t *testing.T) {
 		builder := NewBuilder()
 		builder.AppendRune('H')
 		builder.AppendRune('i')
-		rope := builder.Build()
+		rope, _ := builder.Build()
 		if rope.String() != "Hi" {
 			t.Errorf("Expected 'Hi', got %q", rope.String())
 		}
@@ -451,7 +451,7 @@ func TestBuilderAppendRune(t *testing.T) {
 		builder := NewBuilder()
 		builder.Append("Hello ")
 		builder.AppendRune('🌍')
-		rope := builder.Build()
+		rope, _ := builder.Build()
 		if rope.String() != "Hello 🌍" {
 			t.Errorf("Expected 'Hello 🌍', got %q", rope.String())
 		}
@@ -462,7 +462,7 @@ func TestBuilderAppendRune(t *testing.T) {
 		for _, r := range "ABC" {
 			builder.AppendRune(r)
 		}
-		rope := builder.Build()
+		rope, _ := builder.Build()
 		if rope.String() != "ABC" {
 			t.Errorf("Expected 'ABC', got %q", rope.String())
 		}
@@ -475,7 +475,7 @@ func TestBuilderAppendByte(t *testing.T) {
 		builder := NewBuilder()
 		builder.AppendByte('H')
 		builder.AppendByte('i')
-		rope := builder.Build()
+		rope, _ := builder.Build()
 		if rope.String() != "Hi" {
 			t.Errorf("Expected 'Hi', got %q", rope.String())
 		}
@@ -486,7 +486,7 @@ func TestBuilderAppendByte(t *testing.T) {
 		builder.Append("Hello")
 		builder.AppendByte(' ')
 		builder.AppendByte('W')
-		rope := builder.Build()
+		rope, _ := builder.Build()
 		if rope.String() != "Hello W" {
 			t.Errorf("Expected 'Hello W', got %q", rope.String())
 		}
@@ -500,7 +500,7 @@ func TestBuilderAppendLine(t *testing.T) {
 		builder.AppendLine("Line1")
 		builder.AppendLine("Line2")
 		builder.Append("Line3")
-		rope := builder.Build()
+		rope, _ := builder.Build()
 		if rope.String() != "Line1\nLine2\nLine3" {
 			t.Errorf("Expected 'Line1\\nLine2\\nLine3', got %q", rope.String())
 		}
@@ -586,7 +586,7 @@ func TestBuilderPool(t *testing.T) {
 
 		// Use it
 		builder1.Append("Hello")
-		rope1 := builder1.Build()
+		rope1, _ := builder1.Build()
 		if rope1.String() != "Hello" {
 			t.Errorf("Expected 'Hello', got %q", rope1.String())
 		}
@@ -601,7 +601,7 @@ func TestBuilderPool(t *testing.T) {
 		}
 
 		builder2.Append("World")
-		rope2 := builder2.Build()
+		rope2, _ := builder2.Build()
 		if rope2.String() != "World" {
 			t.Errorf("Expected 'World', got %q", rope2.String())
 		}
@@ -634,7 +634,7 @@ func TestBuilderPool(t *testing.T) {
 			go func() {
 				builder := pool.Get()
 				builder.Append("test")
-				builder.Build()
+				_, _ = builder.Build()
 				pool.Put(builder)
 				done <- true
 			}()
@@ -661,7 +661,7 @@ func TestBuilderWrite(t *testing.T) {
 			t.Errorf("Expected to write %d bytes, wrote %d", len(data), n)
 		}
 
-		rope := builder.Build()
+		rope, _ := builder.Build()
 		if rope.String() != "Hello World" {
 			t.Errorf("Expected 'Hello World', got %q", rope.String())
 		}
@@ -682,7 +682,7 @@ func TestBuilderWriteString(t *testing.T) {
 			t.Errorf("Expected to write %d bytes, wrote %d", len(s), n)
 		}
 
-		rope := builder.Build()
+		rope, _ := builder.Build()
 		if rope.String() != "Hello World" {
 			t.Errorf("Expected 'Hello World', got %q", rope.String())
 		}
@@ -696,14 +696,14 @@ func TestBuilderBuildReuse(t *testing.T) {
 
 		// First build
 		builder.Append("Hello")
-		rope1 := builder.Build()
+		rope1, _ := builder.Build()
 		if rope1.String() != "Hello" {
 			t.Errorf("Expected 'Hello', got %q", rope1.String())
 		}
 
 		// Second build (should add to existing rope)
 		builder.Append(" World")
-		rope2 := builder.Build()
+		rope2, _ := builder.Build()
 		if rope2.String() != "Hello World" {
 			t.Errorf("Expected 'Hello World', got %q", rope2.String())
 		}
@@ -717,7 +717,7 @@ func TestBuilderComplexOperations(t *testing.T) {
 		builder.Append("Hello")
 		builder.Append(" Beautiful")
 		builder.Append(" World")
-		rope := builder.Build()
+		rope, _ := builder.Build()
 		// After appends: "Hello Beautiful World"
 		expected := "Hello Beautiful World"
 		if rope.String() != expected {
@@ -737,7 +737,7 @@ func TestBuilderComplexOperations(t *testing.T) {
 			expected.WriteString("\n")
 		}
 
-		rope := builder.Build()
+		rope, _ := builder.Build()
 		if rope.String() != expected.String() {
 			t.Errorf("Large text mismatch")
 		}
@@ -751,7 +751,7 @@ func TestBuilderEdgeCases(t *testing.T) {
 		builder.Append("")
 		builder.Insert(0, "")
 		builder.Delete(0, 0)
-		rope := builder.Build()
+		rope, _ := builder.Build()
 		if rope.Length() != 0 {
 			t.Errorf("Expected empty rope, got length %d", rope.Length())
 		}
@@ -762,7 +762,7 @@ func TestBuilderEdgeCases(t *testing.T) {
 		builder.Insert(0, "X") // At beginning
 		builder.Insert(2, "Y") // In middle
 		builder.Insert(4, "Z") // At end
-		rope := builder.Build()
+		rope, _ := builder.Build()
 		if rope.String() != "XAYBZ" {
 			t.Errorf("Expected 'XAYBZ', got %q", rope.String())
 		}
@@ -771,7 +771,7 @@ func TestBuilderEdgeCases(t *testing.T) {
 	t.Run("replace entire content", func(t *testing.T) {
 		builder := NewBuilderFromRope(New("Old"))
 		builder.Replace(0, 3, "New")
-		rope := builder.Build()
+		rope, _ := builder.Build()
 		if rope.String() != "New" {
 			t.Errorf("Expected 'New', got %q", rope.String())
 		}
@@ -780,9 +780,9 @@ func TestBuilderEdgeCases(t *testing.T) {
 	t.Run("append after build", func(t *testing.T) {
 		builder := NewBuilder()
 		builder.Append("Hello")
-		_ = builder.Build()
+		_, _ = builder.Build()
 		builder.Append(" World")
-		rope := builder.Build()
+		rope, _ := builder.Build()
 		if rope.String() != "Hello World" {
 			t.Errorf("Expected 'Hello World', got %q", rope.String())
 		}

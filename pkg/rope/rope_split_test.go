@@ -16,7 +16,7 @@ import (
 func TestRope_SplitOff_Basic(t *testing.T) {
 	r := New("Hello World")
 
-	left, right := r.SplitOff(5)
+	left, right, _ := r.SplitOff(5)
 
 	assert.Equal(t, "Hello", left.String())
 	assert.Equal(t, " World", right.String())
@@ -25,7 +25,7 @@ func TestRope_SplitOff_Basic(t *testing.T) {
 func TestRope_SplitOff_Beginning(t *testing.T) {
 	r := New("Hello World")
 
-	left, right := r.SplitOff(0)
+	left, right, _ := r.SplitOff(0)
 
 	assert.Equal(t, "", left.String())
 	assert.Equal(t, "Hello World", right.String())
@@ -34,7 +34,7 @@ func TestRope_SplitOff_Beginning(t *testing.T) {
 func TestRope_SplitOff_End(t *testing.T) {
 	r := New("Hello World")
 
-	left, right := r.SplitOff(r.Length())
+	left, right, _ := r.SplitOff(r.Length())
 
 	assert.Equal(t, "Hello World", left.String())
 	assert.Equal(t, "", right.String())
@@ -43,7 +43,7 @@ func TestRope_SplitOff_End(t *testing.T) {
 func TestRope_SplitOff_Middle(t *testing.T) {
 	r := New("Hello World")
 
-	left, right := r.SplitOff(6)
+	left, right, _ := r.SplitOff(6)
 
 	assert.Equal(t, "Hello ", left.String())
 	assert.Equal(t, "World", right.String())
@@ -52,12 +52,12 @@ func TestRope_SplitOff_Middle(t *testing.T) {
 func TestRope_Split_Multiple(t *testing.T) {
 	r := New("Hello Beautiful World")
 
-	left, right := r.Split(6)
+	left, right, _ := r.Split(6)
 	assert.Equal(t, "Hello ", left.String())
 	assert.Equal(t, "Beautiful World", right.String())
 
 	// Now split the right part
-	rightLeft, rightRight := right.SplitOff(10)
+	rightLeft, rightRight, _ := right.SplitOff(10)
 	assert.Equal(t, "Beautiful ", rightLeft.String())
 	assert.Equal(t, "World", rightRight.String())
 }
@@ -65,7 +65,7 @@ func TestRope_Split_Multiple(t *testing.T) {
 func TestRope_Split_Empty(t *testing.T) {
 	r := New("")
 
-	r1, r2 := r.Split(0)
+	r1, r2, _ := r.Split(0)
 
 	assert.Equal(t, "", r1.String())
 	assert.Equal(t, "", r2.String())
@@ -74,7 +74,7 @@ func TestRope_Split_Empty(t *testing.T) {
 func TestRope_Split_Whole(t *testing.T) {
 	r := New("Hello")
 
-	r1, r2 := r.Split(5)
+	r1, r2, _ := r.Split(5)
 
 	assert.Equal(t, "Hello", r1.String())
 	assert.Equal(t, "", r2.String())
@@ -85,7 +85,7 @@ func TestRope_SplitAndAppend(t *testing.T) {
 	r2 := New(" World")
 
 	// Split and recombine
-	left, right := r1.Split(r1.Length())
+	left, right, _ := r1.Split(r1.Length())
 	r3 := left.Append(right.String())
 
 	assert.Equal(t, "Hello", r3.String())
@@ -229,7 +229,7 @@ func TestRope_Split_IO_Combo(t *testing.T) {
 	r := New(original)
 
 	// Split into parts
-	part1, part2 := r.Split(r.Length() / 2)
+	part1, part2, _ := r.Split(r.Length() / 2)
 
 	// Write each part to separate buffers
 	var buf1, buf2 bytes.Buffer
@@ -246,7 +246,7 @@ func TestRope_SplitMutate_Append(t *testing.T) {
 	r := New("Hello World")
 
 	// Split
-	left, right := r.SplitOff(5)
+	left, right, _ := r.SplitOff(5)
 
 	// Modify left part and append right
 	result := left.Append(",")
@@ -264,7 +264,7 @@ func TestRope_IO_Pipeline(t *testing.T) {
 	r, _ := FromReader(reader)
 
 	// Process: insert comma
-	r = r.Insert(5, ",")
+	r, _ = r.Insert(5, ",")
 
 	// Write
 	var buf bytes.Buffer
@@ -280,7 +280,7 @@ func TestRope_IO_Pipeline(t *testing.T) {
 func TestRope_SplitOff_EmptyString(t *testing.T) {
 	r := New("")
 
-	left, right := r.SplitOff(0)
+	left, right, _ := r.SplitOff(0)
 
 	assert.Equal(t, "", left.String())
 	assert.Equal(t, "", right.String())
@@ -290,12 +290,12 @@ func TestRope_Split_OutOfBounds(t *testing.T) {
 	r := New("Hello")
 
 	// Split at end
-	left, right := r.SplitOff(5)
+	left, right, _ := r.SplitOff(5)
 	assert.Equal(t, "Hello", left.String())
 	assert.Equal(t, "", right.String())
 
 	// Split beyond end - SplitOff handles this gracefully
-	left, right = r.SplitOff(100)
+	left, right, _ = r.SplitOff(100)
 	assert.Equal(t, "Hello", left.String())
 	assert.Equal(t, "", right.String())
 }
@@ -331,7 +331,7 @@ func BenchmarkRope_SplitOff(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = r.SplitOff(r.Length() / 2)
+		_, _, _ = r.SplitOff(r.Length() / 2)
 	}
 }
 
@@ -340,7 +340,7 @@ func BenchmarkRope_Split(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = r.Split(r.Length() / 2)
+		_, _, _ = r.Split(r.Length() / 2)
 	}
 }
 
