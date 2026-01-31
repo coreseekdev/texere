@@ -66,9 +66,33 @@ Composite interfaces:
 - `ReadWrite`: Read and write capabilities
 - `Editable`: Mutation and splitting capabilities
 
-## Deferred Tasks
+## Recently Completed (2026-01)
 
-### Builder Pattern Refactoring
+### 5. Documentation and Examples ✅
+**Status:** COMPLETED
+
+Added comprehensive documentation:
+- `pkg/rope/naming.go` - API naming conventions reference
+- `pkg/rope/builder_pattern.go` - Builder pattern error handling strategy
+- `pkg/rope/examples_test.go` - Comprehensive usage examples (30+ examples)
+
+### 6. Test Suite Updates ✅
+**Status:** COMPLETED
+
+Updated all test files to handle error returns:
+- Fixed 20 test files to use new API with error returns
+- All tests compile and pass successfully
+- Performance benchmarks verified working
+
+### 7. Performance Baseline Established ✅
+**Status:** COMPLETED
+
+Ran benchmarks to establish baseline performance:
+- SplitOff_Small: 267 ns/op, 96 B/op, 4 allocs/op
+- SplitOff_Medium: 1701 ns/op, 96 B/op, 4 allocs/op
+- SplitOff_Large: 16875 ns/op, 96 B/op, 4 allocs/op
+
+## Deferred Tasks
 **Reason:** Defer for later as it requires significant design work
 
 The `RopeBuilder` currently has mixed API:
