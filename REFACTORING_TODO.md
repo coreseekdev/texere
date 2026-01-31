@@ -92,6 +92,27 @@ Ran benchmarks to establish baseline performance:
 - SplitOff_Medium: 1701 ns/op, 96 B/op, 4 allocs/op
 - SplitOff_Large: 16875 ns/op, 96 B/op, 4 allocs/op
 
+## Recently Completed (2026-01) - Continued
+
+### 8. Documentation Improvements ✅
+**Status:** COMPLETED
+
+Added comprehensive godoc documentation:
+- Enhanced package-level documentation with usage guidelines
+- Documented when to use Rope vs String (10KB threshold)
+- Added performance characteristics table with O notation
+- Documented thread-safety guarantees (immutable, concurrent reads safe)
+- Added usage examples throughout
+
+### 9. Iterator Pooling ✅
+**Status:** COMPLETED
+
+Enhanced iterator pooling implementation:
+- Added pooled variants for all iterator types
+- NewIteratorPooled(), IterReversePooled(), NewBytesIteratorPooled()
+- Added corresponding release functions
+- Added benchmarks comparing pooled vs non-pooled performance
+
 ## Deferred Tasks
 **Reason:** Defer for later as it requires significant design work
 
