@@ -9,21 +9,26 @@ import (
 // InsertOptimized inserts text at the specified character position.
 // Optimized version that avoids rune[] conversions and reduces allocations.
 // Returns a new Rope, leaving the original unchanged.
-func (r *Rope) InsertOptimized(pos int, text string) *Rope {
+func (r *Rope) InsertOptimized(pos int, text string) (*Rope, error) {
 	if r == nil {
-		return New(text)
+		return New(text), nil
 	}
 	if pos < 0 || pos > r.length {
-		panic("insert position out of range")
+		return nil, &ErrOutOfBounds{
+			Operation: "InsertOptimized",
+			Position:  pos,
+			Min:       0,
+			Max:       r.length + 1,
+		}
 	}
 	if text == "" {
-		return r
+		return r, nil
 	}
 	if pos == 0 {
-		return r.Prepend(text) // Now uses optimized implementation
+		return r.Prepend(text), nil // Now uses optimized implementation
 	}
 	if pos == r.length {
-		return r.Append(text)
+		return r.Append(text), nil
 	}
 
 	newRoot := insertNodeOptimized(r.root, pos, text)
@@ -31,7 +36,7 @@ func (r *Rope) InsertOptimized(pos int, text string) *Rope {
 		root:   newRoot,
 		length: r.length + utf8.RuneCountInString(text),
 		size:   r.size + len(text),
-	}
+	}, nil
 }
 
 // insertNodeOptimized performs optimized insertion.
@@ -87,23 +92,33 @@ func insertNodeOptimized(node RopeNode, pos int, text string) RopeNode {
 // DeleteOptimized removes characters from start to end (exclusive).
 // Optimized version that reduces allocations.
 // Returns a new Rope, leaving the original unchanged.
-func (r *Rope) DeleteOptimized(start, end int) *Rope {
+func (r *Rope) DeleteOptimized(start, end int) (*Rope, error) {
 	if r == nil {
-		return r
+		return r, nil
 	}
 	if start < 0 || end > r.length || start > end {
-		panic("delete range out of bounds")
+		return nil, &ErrInvalidRange{
+			Operation: "DeleteOptimized",
+			Start:     start,
+			End:       end,
+			ValidMax:  r.length,
+		}
 	}
 	if start == end {
-		return r
+		return r, nil
+	}
+
+	deletedText, err := r.Slice(start, end)
+	if err != nil {
+		return nil, err
 	}
 
 	newRoot := deleteNodeOptimized(r.root, start, end)
 	return &Rope{
 		root:   newRoot,
-		length: r.length - utf8.RuneCountInString(r.Slice(start, end)),
-		size:   r.size - len(r.Slice(start, end)),
-	}
+		length: r.length - utf8.RuneCountInString(deletedText),
+		size:   r.size - len(deletedText),
+	}, nil
 }
 
 // deleteNodeOptimized performs optimized deletion.
@@ -177,20 +192,32 @@ func deleteNodeOptimized(node RopeNode, start, end int) RopeNode {
 
 // ReplaceOptimized replaces characters from start to end (exclusive) with the given text.
 // Optimized version that combines Delete and Insert efficiently.
-func (r *Rope) ReplaceOptimized(start, end int, text string) *Rope {
+func (r *Rope) ReplaceOptimized(start, end int, text string) (*Rope, error) {
 	if r == nil {
-		return New(text)
+		return New(text), nil
 	}
 
 	// Optimized: If replacement is same size, just swap the content
-	oldLen := utf8.RuneCountInString(r.Slice(start, end))
+	oldText, err := r.Slice(start, end)
+	if err != nil {
+		return nil, err
+	}
+	oldLen := utf8.RuneCountInString(oldText)
 	newLen := utf8.RuneCountInString(text)
 
 	if oldLen == newLen {
 		// Direct replacement in place
-		return r.DeleteOptimized(start, end).InsertOptimized(start, text)
+		deleted, err := r.DeleteOptimized(start, end)
+		if err != nil {
+			return nil, err
+		}
+		return deleted.InsertOptimized(start, text)
 	}
 
 	// For different sizes, use Delete + Insert
-	return r.DeleteOptimized(start, end).InsertOptimized(start, text)
+	deleted, err := r.DeleteOptimized(start, end)
+	if err != nil {
+		return nil, err
+	}
+	return deleted.InsertOptimized(start, text)
 }

@@ -247,16 +247,19 @@ func (wb *WordBoundary) CurrentWordEnd(pos int) int {
 
 // WordAt returns the word at the given position, along with its start and end positions.
 // If the position is not on a word, returns empty string.
-func (wb *WordBoundary) WordAt(pos int) (string, int, int) {
+func (wb *WordBoundary) WordAt(pos int) (string, int, int, error) {
 	start := wb.CurrentWordStart(pos)
 	end := wb.CurrentWordEnd(pos)
 
 	if start >= end {
-		return "", start, end
+		return "", start, end, nil
 	}
 
-	word := wb.rope.Slice(start, end)
-	return word, start, end
+	word, err := wb.rope.Slice(start, end)
+	if err != nil {
+		return "", start, end, err
+	}
+	return word, start, end, nil
 }
 
 // SelectWord selects the word at the given position.

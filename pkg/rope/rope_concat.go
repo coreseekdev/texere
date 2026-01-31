@@ -199,13 +199,21 @@ func (r *Rope) Prepend(text string) *Rope {
 // ========== Builder Integration ==========
 
 // AppendFromBuilder appends the contents of a builder to the rope.
-func (r *Rope) AppendFromBuilder(b *RopeBuilder) *Rope {
-	return r.AppendRope(b.Build())
+func (r *Rope) AppendFromBuilder(b *RopeBuilder) (*Rope, error) {
+	rope, err := b.Build()
+	if err != nil {
+		return nil, err
+	}
+	return r.AppendRope(rope), nil
 }
 
 // PrependFromBuilder prepends the contents of a builder to the rope.
-func (r *Rope) PrependFromBuilder(b *RopeBuilder) *Rope {
-	return r.PrependRope(b.Build())
+func (r *Rope) PrependFromBuilder(b *RopeBuilder) (*Rope, error) {
+	rope, err := b.Build()
+	if err != nil {
+		return nil, err
+	}
+	return r.PrependRope(rope), nil
 }
 
 // ========== Optimization Checks ==========

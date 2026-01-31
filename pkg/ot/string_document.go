@@ -1,5 +1,7 @@
 package ot
 
+import "unicode/utf8"
+
 // StringDocument is a simple string-based implementation of the Document interface.
 //
 // This is a basic implementation suitable for small documents. For large documents,
@@ -32,6 +34,17 @@ func NewStringDocument(content string) *StringDocument {
 // Length returns the length of the document in bytes.
 func (d *StringDocument) Length() int {
 	return len(d.content)
+}
+
+// LengthBytes returns the length of the document in bytes.
+// This is an alias for Length() for explicit intent.
+func (d *StringDocument) LengthBytes() int {
+	return d.Length()
+}
+
+// LengthChars returns the length of the document in characters (code points).
+func (d *StringDocument) LengthChars() int {
+	return utf8.RuneCountInString(d.content)
 }
 
 // String returns the document content as a string.

@@ -9,23 +9,36 @@ import (
 
 // Line returns the text of the specified line (without line ending).
 // Panics if lineNum is out of bounds.
-func (r *Rope) Line(lineNum int) string {
+func (r *Rope) Line(lineNum int) (string, error) {
 	lineCount := r.LineCount()
 	if lineNum < 0 || lineNum >= lineCount {
-		panic("line number out of bounds")
+		return "", &ErrOutOfBounds{
+			Operation: "Line",
+			Position:  lineNum,
+			Min:       0,
+			Max:       lineCount,
+		}
 	}
 
 	start := r.LineStart(lineNum)
-	end := r.LineEnd(lineNum)
+	end, err := r.LineEnd(lineNum)
+	if err != nil {
+		return "", err
+	}
 	return r.Slice(start, end)
 }
 
 // LineWithEnding returns the text of the specified line including the line ending.
 // Panics if lineNum is out of bounds.
-func (r *Rope) LineWithEnding(lineNum int) string {
+func (r *Rope) LineWithEnding(lineNum int) (string, error) {
 	lineCount := r.LineCount()
 	if lineNum < 0 || lineNum >= lineCount {
-		panic("line number out of bounds")
+		return "", &ErrOutOfBounds{
+			Operation: "LineWithEnding",
+			Position:  lineNum,
+			Min:       0,
+			Max:       lineCount,
+		}
 	}
 
 	start := r.LineStart(lineNum)
@@ -83,54 +96,74 @@ func (r *Rope) LineStart(lineNum int) int {
 // LineEnd returns the character position where the specified line ends (exclusive).
 // This does not include the line ending character.
 // Panics if lineNum is out of bounds.
-func (r *Rope) LineEnd(lineNum int) int {
+func (r *Rope) LineEnd(lineNum int) (int, error) {
 	if lineNum < 0 || lineNum >= r.LineCount() {
-		panic("line number out of bounds")
+		return 0, &ErrOutOfBounds{
+			Operation: "LineEnd",
+			Position:  lineNum,
+			Min:       0,
+			Max:       r.LineCount(),
+		}
 	}
 
 	start := r.LineStart(lineNum)
 
 	// Find the next newline after start
 	for i := start; i < r.Length(); i++ {
-		if r.CharAt(i) == '\n' {
-			return i
+		ch, err := r.CharAt(i)
+		if err != nil {
+			return 0, err
+		}
+		if ch == '\n' {
+			return i, nil
 		}
 	}
 
 	// No newline found, this is the last line
-	return r.Length()
+	return r.Length(), nil
 }
 
 // LineLength returns the length of the specified line in characters (excluding line ending).
 // Panics if lineNum is out of bounds.
 func (r *Rope) LineLength(lineNum int) int {
 	start := r.LineStart(lineNum)
-	end := r.LineEnd(lineNum)
+	end, _ := r.LineEnd(lineNum)
 	return end - start
 }
 
 // LineWithEndingLength returns the length of the specified line including the line ending.
 // Panics if lineNum is out of bounds.
-func (r *Rope) LineWithEndingLength(lineNum int) int {
+func (r *Rope) LineWithEndingLength(lineNum int) (int, error) {
 	if lineNum < 0 || lineNum >= r.LineCount() {
-		panic("line number out of bounds")
+		return 0, &ErrOutOfBounds{
+			Operation: "LineWithEndingLength",
+			Position:  lineNum,
+			Min:       0,
+			Max:       r.LineCount(),
+		}
 	}
 
 	start := r.LineStart(lineNum)
 	end := start + r.LineLength(lineNum)
 
 	// Add 1 for the newline if it exists
-	if end < r.Length() && r.CharAt(end) == '\n' {
-		return (end - start) + 1
+	if end < r.Length() {
+		ch, err := r.CharAt(end)
+		if err != nil {
+			return 0, err
+		}
+		if ch == '\n' {
+			return (end - start) + 1, nil
+		}
 	}
 
-	return end - start
+	return end - start, nil
 }
 
 // InsertLine inserts text at the beginning of the specified line.
 // Returns a new Rope, leaving the original unchanged.
 // Panics if lineNum is out of bounds.
-func (r *Rope) InsertLine(lineNum int, text string) *Rope {
+func (r *Rope) InsertLine(lineNum int, text string) (*Rope, error) {
 	pos := r.LineStart(lineNum)
 	return r.Insert(pos, text)
 }
@@ -138,18 +171,31 @@ func (r *Rope) InsertLine(lineNum int, text string) *Rope {
 // DeleteLine removes the specified line.
 // Returns a new Rope, leaving the original unchanged.
 // Panics if lineNum is out of bounds.
-func (r *Rope) DeleteLine(lineNum int) *Rope {
+func (r *Rope) DeleteLine(lineNum int) (*Rope, error) {
 	if lineNum < 0 || lineNum >= r.LineCount() {
-		panic("line number out of bounds")
+		return nil, &ErrOutOfBounds{
+			Operation: "DeleteLine",
+			Position:  lineNum,
+			Min:       0,
+			Max:       r.LineCount(),
+		}
 	}
 
 	start := r.LineStart(lineNum)
-	end := r.LineEnd(lineNum)
+	end, err := r.LineEnd(lineNum)
+	if err != nil {
+		return nil, err
+	}
 
 	// Check if there's a newline after the line
-	hasNewline := end < r.Length() && r.CharAt(end) == '\n'
-	if hasNewline {
-		end++ // Include the newline in deletion
+	if end < r.Length() {
+		ch, err := r.CharAt(end)
+		if err != nil {
+			return nil, err
+		}
+		if ch == '\n' {
+			end++ // Include the newline in deletion
+		}
 	}
 
 	return r.Delete(start, end)
@@ -158,15 +204,15 @@ func (r *Rope) DeleteLine(lineNum int) *Rope {
 // ReplaceLine replaces the content of the specified line with the given text.
 // Returns a new Rope, leaving the original unchanged.
 // Panics if lineNum is out of bounds.
-func (r *Rope) ReplaceLine(lineNum int, text string) *Rope {
+func (r *Rope) ReplaceLine(lineNum int, text string) (*Rope, error) {
 	start := r.LineStart(lineNum)
-	end := r.LineEnd(lineNum)
+	end := r.LineStart(lineNum) + r.LineLength(lineNum)
 	return r.Replace(start, end, text)
 }
 
 // AppendLine appends a new line to the end of the rope.
 // Returns a new Rope, leaving the original unchanged.
-func (r *Rope) AppendLine(text string) *Rope {
+func (r *Rope) AppendLine(text string) (*Rope, error) {
 	if r.Length() == 0 {
 		return r.Insert(0, text)
 	}
@@ -177,7 +223,7 @@ func (r *Rope) AppendLine(text string) *Rope {
 
 // PrependLine prepends a new line at the beginning of the rope.
 // Returns a new Rope, leaving the original unchanged.
-func (r *Rope) PrependLine(text string) *Rope {
+func (r *Rope) PrependLine(text string) (*Rope, error) {
 	if r.Length() == 0 {
 		return r.Insert(0, text)
 	}
@@ -208,17 +254,27 @@ func (it *LinesIterator) Next() bool {
 }
 
 // Current returns the current line (without line ending).
-func (it *LinesIterator) Current() string {
+func (it *LinesIterator) Current() (string, error) {
 	if it.lineNum < 0 || it.lineNum >= it.totalLines {
-		panic("iterator out of bounds")
+		return "", &ErrOutOfBounds{
+			Operation: "LinesIterator.Current",
+			Position:  it.lineNum,
+			Min:       0,
+			Max:       it.totalLines,
+		}
 	}
 	return it.rope.Line(it.lineNum)
 }
 
 // CurrentWithEnding returns the current line including the line ending.
-func (it *LinesIterator) CurrentWithEnding() string {
+func (it *LinesIterator) CurrentWithEnding() (string, error) {
 	if it.lineNum < 0 || it.lineNum >= it.totalLines {
-		panic("iterator out of bounds")
+		return "", &ErrOutOfBounds{
+			Operation: "LinesIterator.CurrentWithEnding",
+			Position:  it.lineNum,
+			Min:       0,
+			Max:       it.totalLines,
+		}
 	}
 	return it.rope.LineWithEnding(it.lineNum)
 }
@@ -234,13 +290,17 @@ func (it *LinesIterator) Reset() {
 }
 
 // ToSlice collects all lines into a slice (without line endings).
-func (it *LinesIterator) ToSlice() []string {
+func (it *LinesIterator) ToSlice() ([]string, error) {
 	lines := make([]string, 0, it.totalLines)
 	it.Reset()
 	for it.Next() {
-		lines = append(lines, it.Current())
+		line, err := it.Current()
+		if err != nil {
+			return nil, err
+		}
+		lines = append(lines, line)
 	}
-	return lines
+	return lines, nil
 }
 
 // ========== Line-based Editing Operations ==========
@@ -282,7 +342,7 @@ func (r *Rope) ColumnAtChar(pos int) int {
 // Panics if lineNum or colNum is out of bounds.
 func (r *Rope) PositionAtLineCol(lineNum, colNum int) int {
 	lineStart := r.LineStart(lineNum)
-	lineEnd := r.LineEnd(lineNum)
+	lineEnd, _ := r.LineEnd(lineNum)
 
 	if colNum < 0 || colNum > (lineEnd-lineStart) {
 		panic("column number out of bounds")
@@ -293,14 +353,14 @@ func (r *Rope) PositionAtLineCol(lineNum, colNum int) int {
 
 // InsertAtLineCol inserts text at the specified line and column.
 // Returns a new Rope, leaving the original unchanged.
-func (r *Rope) InsertAtLineCol(lineNum, colNum int, text string) *Rope {
+func (r *Rope) InsertAtLineCol(lineNum, colNum int, text string) (*Rope, error) {
 	pos := r.PositionAtLineCol(lineNum, colNum)
 	return r.Insert(pos, text)
 }
 
 // DeleteAtLineCol deletes characters from (lineNum, colNum) to (lineNum2, colNum2).
 // Returns a new Rope, leaving the original unchanged.
-func (r *Rope) DeleteAtLineCol(lineNum, colNum, lineNum2, colNum2 int) *Rope {
+func (r *Rope) DeleteAtLineCol(lineNum, colNum, lineNum2, colNum2 int) (*Rope, error) {
 	start := r.PositionAtLineCol(lineNum, colNum)
 	end := r.PositionAtLineCol(lineNum2, colNum2)
 	return r.Delete(start, end)
@@ -309,11 +369,15 @@ func (r *Rope) DeleteAtLineCol(lineNum, colNum, lineNum2, colNum2 int) *Rope {
 // ========== Line Information ==========
 
 // HasTrailingNewline returns true if the rope ends with a newline character.
-func (r *Rope) HasTrailingNewline() bool {
+func (r *Rope) HasTrailingNewline() (bool, error) {
 	if r.Length() == 0 {
-		return false
+		return false, nil
 	}
-	return r.CharAt(r.Length()-1) == '\n'
+	ch, err := r.CharAt(r.Length() - 1)
+	if err != nil {
+		return false, err
+	}
+	return ch == '\n', nil
 }
 
 // LineEnding returns the line ending style used in the rope.
@@ -342,9 +406,13 @@ func (r *Rope) LineEnding() string {
 // NormalizeLineEndings converts all line endings to the specified style.
 // Valid styles are "\n" (Unix), "\r\n" (Windows), or "\r" (Mac Classic).
 // Returns a new Rope, leaving the original unchanged.
-func (r *Rope) NormalizeLineEndings(style string) *Rope {
+func (r *Rope) NormalizeLineEndings(style string) (*Rope, error) {
 	if style != "\n" && style != "\r\n" && style != "\r" {
-		panic("invalid line ending style")
+		return nil, &ErrInvalidInput{
+			Parameter: "style",
+			Value:     style,
+			Reason:    "must be \\n, \\r\\n, or \\r",
+		}
 	}
 
 	content := r.String()
@@ -355,7 +423,7 @@ func (r *Rope) NormalizeLineEndings(style string) *Rope {
 
 	// Then convert to desired style
 	if style == "\n" {
-		return New(content)
+		return New(content), nil
 	}
 
 	// Convert \n to desired style
@@ -365,38 +433,38 @@ func (r *Rope) NormalizeLineEndings(style string) *Rope {
 		content = strings.ReplaceAll(content, "\n", "\r")
 	}
 
-	return New(content)
+	return New(content), nil
 }
 
 // TrimTrailingNewlines removes all trailing newline characters.
 // Returns a new Rope, leaving the original unchanged.
-func (r *Rope) TrimTrailingNewlines() *Rope {
+func (r *Rope) TrimTrailingNewlines() (*Rope, error) {
 	content := r.String()
 	trimmed := strings.TrimRight(content, "\n\r")
-	return New(trimmed)
+	return New(trimmed), nil
 }
 
 // TrimLeadingNewlines removes all leading newline characters.
 // Returns a new Rope, leaving the original unchanged.
-func (r *Rope) TrimLeadingNewlines() *Rope {
+func (r *Rope) TrimLeadingNewlines() (*Rope, error) {
 	content := r.String()
 	trimmed := strings.TrimLeft(content, "\n\r")
-	return New(trimmed)
+	return New(trimmed), nil
 }
 
 // JoinLines concatenates all lines into a single line.
 // Removes all line endings.
 // Returns a new Rope, leaving the original unchanged.
-func (r *Rope) JoinLines() *Rope {
+func (r *Rope) JoinLines() (*Rope, error) {
 	content := r.String()
 	joined := strings.ReplaceAll(content, "\n", "")
 	joined = strings.ReplaceAll(joined, "\r", "")
-	return New(joined)
+	return New(joined), nil
 }
 
 // SplitLines splits the rope into lines (without line endings).
 // Returns a slice of strings.
-func (r *Rope) SplitLines() []string {
+func (r *Rope) SplitLines() ([]string, error) {
 	it := r.LinesIterator()
 	return it.ToSlice()
 }
@@ -404,14 +472,18 @@ func (r *Rope) SplitLines() []string {
 // IndentLines adds indentation to all lines.
 // prefix is added to the beginning of each line.
 // Returns a new Rope, leaving the original unchanged.
-func (r *Rope) IndentLines(prefix string) *Rope {
+func (r *Rope) IndentLines(prefix string) (*Rope, error) {
 	builder := NewBuilder()
 	it := r.LinesIterator()
 	it.Reset()
 
 	for it.Next() {
 		builder.Append(prefix)
-		builder.Append(it.CurrentWithEnding())
+		lineWithEnding, err := it.CurrentWithEnding()
+		if err != nil {
+			return nil, err
+		}
+		builder.Append(lineWithEnding)
 	}
 
 	return builder.Build()
@@ -419,10 +491,13 @@ func (r *Rope) IndentLines(prefix string) *Rope {
 
 // DedentLines removes common leading whitespace from all lines.
 // Returns a new Rope, leaving the original unchanged.
-func (r *Rope) DedentLines() *Rope {
-	lines := r.SplitLines()
+func (r *Rope) DedentLines() (*Rope, error) {
+	lines, err := r.SplitLines()
+	if err != nil {
+		return nil, err
+	}
 	if len(lines) == 0 {
-		return r
+		return r, nil
 	}
 
 	// Find minimum leading whitespace
@@ -438,21 +513,21 @@ func (r *Rope) DedentLines() *Rope {
 	}
 
 	if minIndent <= 0 {
-		return r
+		return r, nil
 	}
 
 	// Remove minIndent from each line
-	builder := NewBuilder()
+	b := NewBuilder()
 	for i, line := range lines {
 		if len(line) >= minIndent {
-			builder.Append(line[minIndent:])
+			b.Append(line[minIndent:])
 		}
 		if i < len(lines)-1 {
-			builder.Append("\n")
+			b.Append("\n")
 		}
 	}
 
-	return builder.Build()
+	return b.Build()
 }
 
 // leadingWhitespaceCount returns the number of leading whitespace characters.

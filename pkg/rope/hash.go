@@ -180,7 +180,10 @@ func (rh *RollingHasher) Roll() bool {
 	start := rh.rope.CharToByte(rh.window)
 	end := rh.rope.CharToByte(rh.window + 1)
 	if end > start {
-		slice := rh.rope.Slice(start, end)
+		slice, err := rh.rope.Slice(start, end)
+		if err != nil {
+			return false
+		}
 		h.Write([]byte(slice))
 		rh.hash = rh.hash ^ h.Sum32()
 	}

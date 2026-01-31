@@ -32,7 +32,7 @@ func FromReader(reader io.Reader) (*Rope, error) {
 		}
 		if err != nil {
 			if err == io.EOF {
-				return b.Build(), nil
+				return b.Build()
 			}
 			// Clean up on error
 			return nil, err

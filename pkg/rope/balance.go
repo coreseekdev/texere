@@ -48,7 +48,8 @@ func (r *Rope) BalanceWithConfig(config *BalanceConfig) *Rope {
 
 	builder := NewBuilder()
 	rebalanceNode(r.root, builder, config)
-	return builder.Build()
+	result, _ := builder.Build() // Build should not fail in this context
+	return result
 }
 
 // rebalanceNode recursively rebalances a node.

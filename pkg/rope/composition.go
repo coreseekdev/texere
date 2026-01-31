@@ -339,9 +339,9 @@ func (cs *ChangeSet) recalculateLenAfter() {
 }
 
 // InvertAt creates an inverted changeset that undoes this changeset at a position.
-func (cs *ChangeSet) InvertAt(original *Rope, pos int) *ChangeSet {
+func (cs *ChangeSet) InvertAt(original *Rope, pos int) (*ChangeSet, error) {
 	if original == nil {
-		return NewChangeSet(cs.lenAfter)
+		return NewChangeSet(cs.lenAfter), nil
 	}
 
 	inverted := NewChangeSet(cs.lenAfter)
@@ -355,7 +355,10 @@ func (cs *ChangeSet) InvertAt(original *Rope, pos int) *ChangeSet {
 		case OpDelete:
 			// Re-insert the deleted text
 			if currentPos+op.Length <= original.Length() {
-				deletedText := original.Slice(currentPos, currentPos+op.Length)
+				deletedText, err := original.Slice(currentPos, currentPos+op.Length)
+				if err != nil {
+					return nil, err
+				}
 				inverted.Insert(deletedText)
 			}
 			currentPos += op.Length
@@ -369,7 +372,7 @@ func (cs *ChangeSet) InvertAt(original *Rope, pos int) *ChangeSet {
 	// Fuse operations
 	inverted.fuse()
 
-	return inverted
+	return inverted, nil
 }
 
 // CanApplyAt checks if this changeset can be applied at the given position.
@@ -581,7 +584,10 @@ func SimpleCompose(first, second *ChangeSet, original *Rope) *ChangeSet {
 	}
 
 	// Apply first changeset
-	middleDoc := first.Apply(original)
+	middleDoc, err := first.Apply(original)
+	if err != nil {
+		return nil
+	}
 
 	// Calculate what the second changeset should do on the middle document
 	// This requires us to understand what the second changeset is trying to do
@@ -623,7 +629,10 @@ func SimpleCompose(first, second *ChangeSet, original *Rope) *ChangeSet {
 
 	// Now apply second changeset to middleDoc and record what happened
 	// This is the ground truth
-	finalDoc := second.Apply(middleDoc)
+	finalDoc, err := second.Apply(middleDoc)
+	if err != nil {
+		return nil
+	}
 
 	// Now create a changeset that goes from original to final directly
 	// We do this by comparing original and final

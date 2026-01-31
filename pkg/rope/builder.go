@@ -126,35 +126,52 @@ func (b *RopeBuilder) Insert(pos int, text string) *RopeBuilder {
 
 // Delete removes characters from start to end (exclusive).
 // This operation is applied immediately (not batched).
-func (b *RopeBuilder) Delete(start, end int) *RopeBuilder {
-	b.flush()
-	b.rope = b.rope.Delete(start, end)
-	return b
+// Returns an error if the range is invalid.
+func (b *RopeBuilder) Delete(start, end int) (*RopeBuilder, error) {
+	if err := b.flush(); err != nil {
+		return nil, err
+	}
+	rope, err := b.rope.Delete(start, end)
+	if err != nil {
+		return nil, err
+	}
+	b.rope = rope
+	return b, nil
 }
 
 // Replace replaces characters from start to end (exclusive) with the given text.
-func (b *RopeBuilder) Replace(start, end int, text string) *RopeBuilder {
-	b.flush()
-	b.rope = b.rope.Replace(start, end, text)
-	return b
+// Returns an error if the range is invalid.
+func (b *RopeBuilder) Replace(start, end int, text string) (*RopeBuilder, error) {
+	if err := b.flush(); err != nil {
+		return nil, err
+	}
+	rope, err := b.rope.Replace(start, end, text)
+	if err != nil {
+		return nil, err
+	}
+	b.rope = rope
+	return b, nil
 }
 
 // Build constructs the final Rope from all pending operations.
 // After calling Build, the builder can be reused for further operations.
 // The built rope is retained, so subsequent appends will add to it.
-func (b *RopeBuilder) Build() *Rope {
-	b.flush()
+// Returns an error if any operation failed.
+func (b *RopeBuilder) Build() (*Rope, error) {
+	if err := b.flush(); err != nil {
+		return nil, err
+	}
 	// Return a copy of the rope, but keep the original in the builder
 	// This allows reuse: Build() -> Append() -> Build() adds incrementally
 	result := b.rope.Clone()
 	b.pending = b.pending[:0]
-	return result
+	return result, nil
 }
 
 // flush applies all pending insertions to the rope.
-func (b *RopeBuilder) flush() {
+func (b *RopeBuilder) flush() error {
 	if len(b.pending) == 0 {
-		return
+		return nil
 	}
 
 	// Merge consecutive append operations for efficiency
@@ -182,15 +199,20 @@ func (b *RopeBuilder) flush() {
 
 	// Apply merged operations
 	for _, op := range merged {
+		var err error
 		if op.position == -1 {
 			// Append to end
-			b.rope = b.rope.Insert(b.rope.Length(), op.text)
+			b.rope, err = b.rope.Insert(b.rope.Length(), op.text)
 		} else {
-			b.rope = b.rope.Insert(op.position, op.text)
+			b.rope, err = b.rope.Insert(op.position, op.text)
+		}
+		if err != nil {
+			return err
 		}
 	}
 
 	b.pending = b.pending[:0]
+	return nil
 }
 
 // joinStrings efficiently joins multiple strings

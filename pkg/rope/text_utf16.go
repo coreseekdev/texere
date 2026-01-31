@@ -279,7 +279,7 @@ func (r *Rope) SurrogatePairCount() int {
 
 // SliceUTF16 returns a substring from UTF-16 code unit start to end.
 // This is useful when working with JavaScript/Windows APIs that use UTF-16 offsets.
-func (r *Rope) SliceUTF16(startUTF16, endUTF16 int) string {
+func (r *Rope) SliceUTF16(startUTF16, endUTF16 int) (string, error) {
 	startChar := r.UTF16OffsetToChar(startUTF16)
 	endChar := r.UTF16OffsetToChar(endUTF16)
 	return r.Slice(startChar, endChar)

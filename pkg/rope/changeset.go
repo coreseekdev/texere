@@ -126,15 +126,15 @@ func (cs *ChangeSet) fuse() {
 }
 
 // Apply applies the changeset to a rope and returns the modified rope.
-func (cs *ChangeSet) Apply(r *Rope) *Rope {
+func (cs *ChangeSet) Apply(r *Rope) (*Rope, error) {
 	if r == nil || cs.IsEmpty() {
-		return r
+		return r, nil
 	}
 
 	// Check if document length matches changeset's expected input length
 	if r.Length() != cs.lenBefore {
 		// Length mismatch - cannot apply
-		return r
+		return r, ErrLengthMismatch
 	}
 
 	// Make a copy to finalize (don't modify original)
@@ -156,23 +156,31 @@ func (cs *ChangeSet) Apply(r *Rope) *Rope {
 			pos += op.Length
 
 		case OpDelete:
-			result = result.Delete(pos, pos+op.Length)
+			var err error
+			result, err = result.Delete(pos, pos+op.Length)
+			if err != nil {
+				return nil, err
+			}
 			// Delete removes content, so pos stays the same
 
 		case OpInsert:
-			result = result.Insert(pos, op.Text)
+			var err error
+			result, err = result.Insert(pos, op.Text)
+			if err != nil {
+				return nil, err
+			}
 			pos += len([]rune(op.Text))
 		}
 	}
 
-	return result
+	return result, nil
 }
 
 // Invert creates an inverted changeset that undoes this changeset.
 // The original rope state is needed to properly invert deletions.
-func (cs *ChangeSet) Invert(original *Rope) *ChangeSet {
+func (cs *ChangeSet) Invert(original *Rope) (*ChangeSet, error) {
 	if original == nil {
-		return NewChangeSet(cs.lenAfter)
+		return NewChangeSet(cs.lenAfter), nil
 	}
 
 	inverted := NewChangeSet(cs.lenAfter)
@@ -186,7 +194,10 @@ func (cs *ChangeSet) Invert(original *Rope) *ChangeSet {
 
 		case OpDelete:
 			// Re-insert the deleted text
-			deletedText := original.Slice(pos, pos+op.Length)
+			deletedText, err := original.Slice(pos, pos+op.Length)
+			if err != nil {
+				return nil, err
+			}
 			inverted.Insert(deletedText)
 			pos += op.Length
 
@@ -199,7 +210,7 @@ func (cs *ChangeSet) Invert(original *Rope) *ChangeSet {
 	// Fuse operations in the inverted changeset for optimization
 	inverted.fuse()
 
-	return inverted
+	return inverted, nil
 }
 
 // MapPosition maps a single position through this changeset with the given association.

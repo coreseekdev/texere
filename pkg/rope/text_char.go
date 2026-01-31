@@ -6,15 +6,15 @@ package rope
 // Returns a new Rope, leaving the original unchanged.
 //
 // This is equivalent to Insert(pos, string(r)), but slightly more efficient.
-func (r *Rope) InsertChar(pos int, ch rune) *Rope {
+func (r *Rope) InsertChar(pos int, ch rune) (*Rope, error) {
 	if r == nil {
-		return New(string(ch))
+		return New(string(ch)), nil
 	}
 	return r.Insert(pos, string(ch))
 }
 
 // InsertCharAt is an alias for InsertChar.
-func (r *Rope) InsertCharAt(pos int, ch rune) *Rope {
+func (r *Rope) InsertCharAt(pos int, ch rune) (*Rope, error) {
 	return r.InsertChar(pos, ch)
 }
 
@@ -22,15 +22,15 @@ func (r *Rope) InsertCharAt(pos int, ch rune) *Rope {
 // Returns a new Rope, leaving the original unchanged.
 //
 // This is equivalent to Delete(pos, pos+1).
-func (r *Rope) RemoveChar(pos int) *Rope {
+func (r *Rope) RemoveChar(pos int) (*Rope, error) {
 	if r == nil {
-		return r
+		return nil, nil
 	}
 	return r.Delete(pos, pos+1)
 }
 
 // DeleteChar is an alias for RemoveChar.
-func (r *Rope) DeleteChar(pos int) *Rope {
+func (r *Rope) DeleteChar(pos int) (*Rope, error) {
 	return r.RemoveChar(pos)
 }
 
@@ -38,37 +38,54 @@ func (r *Rope) DeleteChar(pos int) *Rope {
 
 // ReplaceChar replaces a single character at the specified position.
 // Returns a new Rope, leaving the original unchanged.
-func (r *Rope) ReplaceChar(pos int, ch rune) *Rope {
+func (r *Rope) ReplaceChar(pos int, ch rune) (*Rope, error) {
 	if r == nil {
-		return New(string(ch))
+		return New(string(ch)), nil
 	}
 	return r.Replace(pos, pos+1, string(ch))
 }
 
 // SwapChar swaps two characters at the specified positions.
 // Returns a new Rope, leaving the original unchanged.
-func (r *Rope) SwapChar(pos1, pos2 int) *Rope {
+func (r *Rope) SwapChar(pos1, pos2 int) (*Rope, error) {
 	if r == nil || r.Length() == 0 {
-		return r
+		return r, nil
 	}
 
 	if pos1 < 0 || pos1 >= r.Length() || pos2 < 0 || pos2 >= r.Length() {
-		panic("character position out of bounds")
+		return nil, &ErrOutOfBounds{
+			Operation: "SwapChar",
+			Position:  pos1,
+			Min:       0,
+			Max:       r.Length(),
+		}
 	}
 
 	if pos1 == pos2 {
-		return r
+		return r, nil
 	}
 
 	// Get the two characters
-	ch1 := r.CharAt(pos1)
-	ch2 := r.CharAt(pos2)
+	ch1, err := r.CharAt(pos1)
+	if err != nil {
+		return nil, err
+	}
+	ch2, err := r.CharAt(pos2)
+	if err != nil {
+		return nil, err
+	}
 
 	// Replace them
-	result := r.ReplaceChar(pos1, ch2)
-	result = result.ReplaceChar(pos2, ch1)
+	result, err := r.ReplaceChar(pos1, ch2)
+	if err != nil {
+		return nil, err
+	}
+	result, err = result.ReplaceChar(pos2, ch1)
+	if err != nil {
+		return nil, err
+	}
 
-	return result
+	return result, nil
 }
 
 // ========== Character Query ==========
@@ -104,38 +121,46 @@ func (r *Rope) IndexOfChar(ch rune) int {
 
 // IndexOfCharFrom returns the first position of the character starting from pos.
 // Returns -1 if the character is not found.
-func (r *Rope) IndexOfCharFrom(pos int, ch rune) int {
+func (r *Rope) IndexOfCharFrom(pos int, ch rune) (int, error) {
 	if r == nil || pos < 0 {
-		return -1
+		return -1, nil
 	}
 
 	for i := pos; i < r.Length(); i++ {
-		if r.CharAt(i) == ch {
-			return i
+		rch, err := r.CharAt(i)
+		if err != nil {
+			return -1, err
+		}
+		if rch == ch {
+			return i, nil
 		}
 	}
-	return -1
+	return -1, nil
 }
 
 // LastIndexOfChar returns the last position of the specified character.
 // Returns -1 if the character is not found.
-func (r *Rope) LastIndexOfChar(ch rune) int {
+func (r *Rope) LastIndexOfChar(ch rune) (int, error) {
 	if r == nil {
-		return -1
+		return -1, nil
 	}
 	for i := r.Length() - 1; i >= 0; i-- {
-		if r.CharAt(i) == ch {
-			return i
+		rch, err := r.CharAt(i)
+		if err != nil {
+			return -1, err
+		}
+		if rch == ch {
+			return i, nil
 		}
 	}
-	return -1
+	return -1, nil
 }
 
 // LastIndexOfCharBefore returns the last position of the character before pos.
 // Returns -1 if the character is not found.
-func (r *Rope) LastIndexOfCharBefore(pos int, ch rune) int {
+func (r *Rope) LastIndexOfCharBefore(pos int, ch rune) (int, error) {
 	if r == nil || pos <= 0 {
-		return -1
+		return -1, nil
 	}
 
 	if pos > r.Length() {
@@ -143,11 +168,15 @@ func (r *Rope) LastIndexOfCharBefore(pos int, ch rune) int {
 	}
 
 	for i := pos - 1; i >= 0; i-- {
-		if r.CharAt(i) == ch {
-			return i
+		rch, err := r.CharAt(i)
+		if err != nil {
+			return -1, err
+		}
+		if rch == ch {
+			return i, nil
 		}
 	}
-	return -1
+	return -1, nil
 }
 
 // CountChar counts the occurrences of a character in the rope.
@@ -212,9 +241,9 @@ func (r *Rope) UniqueChars() []rune {
 
 // MapChars maps each character through a function.
 // Returns a new Rope with the transformed characters.
-func (r *Rope) MapChars(fn func(rune) rune) *Rope {
+func (r *Rope) MapChars(fn func(rune) rune) (*Rope, error) {
 	if r == nil || r.Length() == 0 {
-		return r
+		return r, nil
 	}
 
 	b := NewBuilder()
@@ -227,9 +256,9 @@ func (r *Rope) MapChars(fn func(rune) rune) *Rope {
 
 // FilterChars filters characters by a predicate function.
 // Returns a new Rope with only the characters that satisfy the predicate.
-func (r *Rope) FilterChars(fn func(rune) bool) *Rope {
+func (r *Rope) FilterChars(fn func(rune) bool) (*Rope, error) {
 	if r == nil || r.Length() == 0 {
-		return Empty()
+		return Empty(), nil
 	}
 
 	b := NewBuilder()
@@ -245,9 +274,9 @@ func (r *Rope) FilterChars(fn func(rune) bool) *Rope {
 
 // RemoveChars removes all occurrences of the specified characters.
 // Returns a new Rope, leaving the original unchanged.
-func (r *Rope) RemoveChars(charsToRemove ...rune) *Rope {
+func (r *Rope) RemoveChars(charsToRemove ...rune) (*Rope, error) {
 	if r == nil || len(charsToRemove) == 0 {
-		return r
+		return r, nil
 	}
 
 	removeSet := make(map[rune]bool)
@@ -268,9 +297,9 @@ func (r *Rope) RemoveChars(charsToRemove ...rune) *Rope {
 
 // ReplaceChar replaces all occurrences of oldChar with newChar.
 // Returns a new Rope, leaving the original unchanged.
-func (r *Rope) ReplaceAllChar(oldChar, newChar rune) *Rope {
+func (r *Rope) ReplaceAllChar(oldChar, newChar rune) (*Rope, error) {
 	if r == nil || r.Length() == 0 {
-		return r
+		return r, nil
 	}
 
 	return r.MapChars(func(ch rune) rune {
@@ -283,9 +312,9 @@ func (r *Rope) ReplaceAllChar(oldChar, newChar rune) *Rope {
 
 // ReverseChars reverses all characters in the rope.
 // Returns a new Rope, leaving the original unchanged.
-func (r *Rope) ReverseChars() *Rope {
+func (r *Rope) ReverseChars() (*Rope, error) {
 	if r == nil || r.Length() <= 1 {
-		return r
+		return r, nil
 	}
 
 	runes := r.ToRunes()
@@ -377,9 +406,9 @@ func (r *Rope) CountLetters() int {
 }
 
 // TrimLeftChar removes leading characters that satisfy the predicate.
-func (r *Rope) TrimLeftChar(fn func(rune) bool) *Rope {
+func (r *Rope) TrimLeftChar(fn func(rune) bool) (*Rope, error) {
 	if r == nil || r.Length() == 0 {
-		return r
+		return r, nil
 	}
 
 	it := r.NewIterator()
@@ -392,47 +421,63 @@ func (r *Rope) TrimLeftChar(fn func(rune) bool) *Rope {
 	}
 
 	if start == 0 {
-		return r
+		return r, nil
 	}
-	return New(r.Slice(start, r.Length()))
+	slice, err := r.Slice(start, r.Length())
+	if err != nil {
+		return nil, err
+	}
+	return New(slice), nil
 }
 
 // TrimRightChar removes trailing characters that satisfy the predicate.
-func (r *Rope) TrimRightChar(fn func(rune) bool) *Rope {
+func (r *Rope) TrimRightChar(fn func(rune) bool) (*Rope, error) {
 	if r == nil || r.Length() == 0 {
-		return r
+		return r, nil
 	}
 
 	end := r.Length()
 	for end > 0 {
-		if !fn(r.CharAt(end - 1)) {
+		ch, err := r.CharAt(end - 1)
+		if err != nil {
+			return nil, err
+		}
+		if !fn(ch) {
 			break
 		}
 		end--
 	}
 
 	if end == r.Length() {
-		return r
+		return r, nil
 	}
-	return New(r.Slice(0, end))
+	slice, err := r.Slice(0, end)
+	if err != nil {
+		return nil, err
+	}
+	return New(slice), nil
 }
 
 // TrimChar removes leading and trailing characters that satisfy the predicate.
-func (r *Rope) TrimChar(fn func(rune) bool) *Rope {
-	return r.TrimLeftChar(fn).TrimRightChar(fn)
+func (r *Rope) TrimChar(fn func(rune) bool) (*Rope, error) {
+	trimmed, err := r.TrimLeftChar(fn)
+	if err != nil {
+		return nil, err
+	}
+	return trimmed.TrimRightChar(fn)
 }
 
 // TrimLeftWhitespace removes leading whitespace.
-func (r *Rope) TrimLeftWhitespace() *Rope {
+func (r *Rope) TrimLeftWhitespace() (*Rope, error) {
 	return r.TrimLeftChar(IsWhitespace)
 }
 
 // TrimRightWhitespace removes trailing whitespace.
-func (r *Rope) TrimRightWhitespace() *Rope {
+func (r *Rope) TrimRightWhitespace() (*Rope, error) {
 	return r.TrimRightChar(IsWhitespace)
 }
 
 // TrimWhitespace removes leading and trailing whitespace.
-func (r *Rope) TrimWhitespace() *Rope {
+func (r *Rope) TrimWhitespace() (*Rope, error) {
 	return r.TrimChar(IsWhitespace)
 }

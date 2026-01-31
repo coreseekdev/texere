@@ -76,9 +76,14 @@ func (it *ReverseIterator) Next() bool {
 }
 
 // Current returns the current character (from the end).
-func (it *ReverseIterator) Current() rune {
+func (it *ReverseIterator) Current() (rune, error) {
 	if it.position < 0 || it.position >= it.totalLen {
-		panic("iterator out of bounds")
+		return 0, &ErrOutOfBounds{
+			Operation: "ReverseIterator.Current",
+			Position:  it.position,
+			Min:       0,
+			Max:       it.totalLen,
+		}
 	}
 	// Position from start = totalLen - 1 - position
 	posFromStart := it.totalLen - 1 - it.position
@@ -120,9 +125,9 @@ func (it *ReverseIterator) IsExhausted() bool {
 }
 
 // Peek returns the next character without advancing the iterator.
-func (it *ReverseIterator) Peek() rune {
+func (it *ReverseIterator) Peek() (rune, error) {
 	if it.exhausted || !it.HasPeek() {
-		panic("no next character")
+		return 0, ErrIteratorExhausted
 	}
 	nextPos := it.totalLen - 1 - (it.position + 1)
 	return it.rope.CharAt(nextPos)
@@ -163,22 +168,26 @@ func (it *ReverseIterator) SeekFromStart(pos int) bool {
 }
 
 // Collect collects all characters in reverse order into a slice.
-func (it *ReverseIterator) Collect() []rune {
+func (it *ReverseIterator) Collect() ([]rune, error) {
 	runes := make([]rune, 0, it.totalLen)
 	it.Reset()
 	for it.Next() {
-		runes = append(runes, it.Current())
+		r, err := it.Current()
+		if err != nil {
+			return nil, err
+		}
+		runes = append(runes, r)
 	}
-	return runes
+	return runes, nil
 }
 
 // ToSlice is an alias for Collect.
-func (it *ReverseIterator) ToSlice() []rune {
+func (it *ReverseIterator) ToSlice() ([]rune, error) {
 	return it.Collect()
 }
 
 // ToRunes collects characters in reverse order.
-func (it *ReverseIterator) ToRunes() []rune {
+func (it *ReverseIterator) ToRunes() ([]rune, error) {
 	return it.Collect()
 }
 
@@ -193,13 +202,17 @@ func (it *ReverseIterator) Skip(n int) bool {
 }
 
 // String returns the remaining characters as a string in reverse order.
-func (it *ReverseIterator) String() string {
+func (it *ReverseIterator) String() (string, error) {
 	runes := make([]rune, 0)
 	for it.Next() {
-		runes = append(runes, it.Current())
+		r, err := it.Current()
+		if err != nil {
+			return "", err
+		}
+		runes = append(runes, r)
 	}
 	// Return in reverse order (as collected)
-	return string(runes)
+	return string(runes), nil
 }
 
 // ========== Reverse Operations ==========
@@ -208,7 +221,8 @@ func (it *ReverseIterator) String() string {
 func (r *Rope) ForEachReverse(fn func(rune) bool) bool {
 	it := r.IterReverse()
 	for it.Next() {
-		if !fn(it.Current()) {
+		ch, err := it.Current()
+		if err != nil || !fn(ch) {
 			return false
 		}
 	}
@@ -219,7 +233,8 @@ func (r *Rope) ForEachReverse(fn func(rune) bool) bool {
 func (r *Rope) ForEachReverseWithIndex(fn func(int, rune) bool) bool {
 	it := r.IterReverse()
 	for it.Next() {
-		if !fn(it.PositionFromStart(), it.Current()) {
+		ch, err := it.Current()
+		if err != nil || !fn(it.PositionFromStart(), ch) {
 			return false
 		}
 	}
@@ -228,14 +243,17 @@ func (r *Rope) ForEachReverseWithIndex(fn func(int, rune) bool) bool {
 
 // MapReverse maps each character through a function in reverse order.
 // Returns a new Rope with the mapped characters (in original order).
-func (r *Rope) MapReverse(fn func(rune) rune) *Rope {
+func (r *Rope) MapReverse(fn func(rune) rune) (*Rope, error) {
 	if r == nil || r.Length() == 0 {
-		return r
+		return r, nil
 	}
 
 	// Collect in reverse, then reverse back
 	it := r.IterReverse()
-	runes := it.Collect()
+	runes, err := it.Collect()
+	if err != nil {
+		return nil, err
+	}
 
 	// Reverse to get original order
 	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
@@ -256,14 +274,17 @@ func (r *Rope) MapReverse(fn func(rune) rune) *Rope {
 
 // FilterReverse filters characters by a predicate in reverse order.
 // Returns a new Rope with characters that satisfy the predicate (in original order).
-func (r *Rope) FilterReverse(fn func(rune) bool) *Rope {
+func (r *Rope) FilterReverse(fn func(rune) bool) (*Rope, error) {
 	if r == nil || r.Length() == 0 {
-		return Empty()
+		return Empty(), nil
 	}
 
 	// Collect in reverse
 	it := r.IterReverse()
-	runes := it.Collect()
+	runes, err := it.Collect()
+	if err != nil {
+		return nil, err
+	}
 
 	// Reverse to get original order
 	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
@@ -285,7 +306,11 @@ func (r *Rope) FilterReverse(fn func(rune) bool) *Rope {
 func (r *Rope) FindReverse(fn func(rune) bool) (int, bool) {
 	it := r.IterReverse()
 	for it.Next() {
-		if fn(it.Current()) {
+		ch, err := it.Current()
+		if err != nil {
+			return -1, false
+		}
+		if fn(ch) {
 			return it.PositionFromStart(), true
 		}
 	}
@@ -303,7 +328,11 @@ func (r *Rope) FindReverseFrom(beforePos int, fn func(rune) bool) (int, bool) {
 	it.Next() // Move to position beforePos, so subsequent Next() calls go backwards
 
 	for it.Next() {
-		if fn(it.Current()) {
+		ch, err := it.Current()
+		if err != nil {
+			return -1, false
+		}
+		if fn(ch) {
 			return it.PositionFromStart(), true
 		}
 	}
@@ -315,7 +344,11 @@ func (r *Rope) CountReverse(fn func(rune) bool) int {
 	count := 0
 	it := r.IterReverse()
 	for it.Next() {
-		if fn(it.Current()) {
+		ch, err := it.Current()
+		if err != nil {
+			return count
+		}
+		if fn(ch) {
 			count++
 		}
 	}
@@ -326,7 +359,8 @@ func (r *Rope) CountReverse(fn func(rune) bool) int {
 func (r *Rope) AllReverse(fn func(rune) bool) bool {
 	it := r.IterReverse()
 	for it.Next() {
-		if !fn(it.Current()) {
+		ch, err := it.Current()
+		if err != nil || !fn(ch) {
 			return false
 		}
 	}
@@ -337,7 +371,11 @@ func (r *Rope) AllReverse(fn func(rune) bool) bool {
 func (r *Rope) AnyReverse(fn func(rune) bool) bool {
 	it := r.IterReverse()
 	for it.Next() {
-		if fn(it.Current()) {
+		ch, err := it.Current()
+		if err != nil {
+			return false
+		}
+		if fn(ch) {
 			return true
 		}
 	}
@@ -347,14 +385,17 @@ func (r *Rope) AnyReverse(fn func(rune) bool) bool {
 // ========== Reverse Utilities ==========
 
 // Reverse creates a new rope with characters in reverse order.
-func (r *Rope) Reverse() *Rope {
+func (r *Rope) Reverse() (*Rope, error) {
 	if r == nil || r.Length() <= 1 {
-		return r
+		return r, nil
 	}
 
 	it := r.IterReverse()
 	b := NewBuilder()
-	runes := it.Collect()
+	runes, err := it.Collect()
+	if err != nil {
+		return nil, err
+	}
 
 	// runes are in reverse order, so append them as-is
 	for _, r := range runes {
@@ -365,9 +406,9 @@ func (r *Rope) Reverse() *Rope {
 }
 
 // LastIndexOf finds the last position of a substring.
-func (r *Rope) LastIndexOf(substring string) int {
+func (r *Rope) LastIndexOf(substring string) (int, error) {
 	if substring == "" {
-		return r.Length()
+		return r.Length(), nil
 	}
 	if len(substring) == 1 {
 		return r.LastIndexOfChar([]rune(substring)[0])
@@ -380,23 +421,27 @@ func (r *Rope) LastIndexOf(substring string) int {
 		match := true
 		for j := 0; j < len(substrRunes); j++ {
 			// Check if substring matches at position (Length() - i)
-			if r.CharAt(r.Length()-i+j) != substrRunes[j] {
+			ch, err := r.CharAt(r.Length() - i + j)
+			if err != nil {
+				return -1, err
+			}
+			if ch != substrRunes[j] {
 				match = false
 				break
 			}
 		}
 		if match {
-			return r.Length() - i
+			return r.Length() - i, nil
 		}
 	}
 
-	return -1
+	return -1, nil
 }
 
 // LastIndexOfAny finds the last position of any of the specified characters.
-func (r *Rope) LastIndexOfAny(chars ...rune) int {
+func (r *Rope) LastIndexOfAny(chars ...rune) (int, error) {
 	if len(chars) == 0 {
-		return -1
+		return -1, nil
 	}
 
 	charSet := make(map[rune]bool)
@@ -406,41 +451,53 @@ func (r *Rope) LastIndexOfAny(chars ...rune) int {
 
 	it := r.IterReverse()
 	for it.Next() {
-		if charSet[it.Current()] {
-			return it.PositionFromStart()
+		ch, err := it.Current()
+		if err != nil {
+			return -1, err
+		}
+		if charSet[ch] {
+			return it.PositionFromStart(), nil
 		}
 	}
 
-	return -1
+	return -1, nil
 }
 
 // TrimEnd removes trailing characters that satisfy the predicate.
-func (r *Rope) TrimEnd(fn func(rune) bool) *Rope {
+func (r *Rope) TrimEnd(fn func(rune) bool) (*Rope, error) {
 	if r == nil || r.Length() == 0 {
-		return r
+		return r, nil
 	}
 
 	it := r.IterReverse()
 	end := r.Length()
 
 	for it.Next() {
-		if !fn(it.Current()) {
+		ch, err := it.Current()
+		if err != nil {
+			return nil, err
+		}
+		if !fn(ch) {
 			break
 		}
 		end--
 	}
 
 	if end == r.Length() {
-		return r
+		return r, nil
 	}
-	return New(r.Slice(0, end))
+	slice, err := r.Slice(0, end)
+	if err != nil {
+		return nil, err
+	}
+	return New(slice), nil
 }
 
 // TrimStart removes leading characters that satisfy the predicate.
 // This is implemented with reverse iterator for demonstration.
-func (r *Rope) TrimStart(fn func(rune) bool) *Rope {
+func (r *Rope) TrimStart(fn func(rune) bool) (*Rope, error) {
 	if r == nil || r.Length() == 0 {
-		return r
+		return r, nil
 	}
 
 	it := r.NewIterator()
@@ -454,12 +511,20 @@ func (r *Rope) TrimStart(fn func(rune) bool) *Rope {
 	}
 
 	if start == 0 {
-		return r
+		return r, nil
 	}
-	return New(r.Slice(start, r.Length()))
+	slice, err := r.Slice(start, r.Length())
+	if err != nil {
+		return nil, err
+	}
+	return New(slice), nil
 }
 
 // Trim removes both leading and trailing characters that satisfy the predicate.
-func (r *Rope) Trim(fn func(rune) bool) *Rope {
-	return r.TrimStart(fn).TrimEnd(fn)
+func (r *Rope) Trim(fn func(rune) bool) (*Rope, error) {
+	trimmed, err := r.TrimStart(fn)
+	if err != nil {
+		return nil, err
+	}
+	return trimmed.TrimEnd(fn)
 }

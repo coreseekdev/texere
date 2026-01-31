@@ -150,7 +150,23 @@ func (r *Rope) Length() int {
 	return r.length
 }
 
+// LengthBytes returns the number of bytes in the rope.
+// This provides explicit byte count matching Go's len() function semantics.
+func (r *Rope) LengthBytes() int {
+	if r == nil {
+		return 0
+	}
+	return r.size
+}
+
+// LengthChars returns the number of characters (Unicode code points) in the rope.
+// This is an alias for Length() for clarity and explicit intent.
+func (r *Rope) LengthChars() int {
+	return r.Length()
+}
+
 // Size returns the number of bytes in the rope.
+// Deprecated: Use LengthBytes() for explicit byte count.
 func (r *Rope) Size() int {
 	if r == nil {
 		return 0
@@ -183,43 +199,49 @@ func (r *Rope) Bytes() []byte {
 }
 
 // Slice returns a substring from start to end (exclusive, in character positions).
-// Panics if indices are out of bounds.
-func (r *Rope) Slice(start, end int) string {
+// Returns an error if indices are out of bounds.
+func (r *Rope) Slice(start, end int) (string, error) {
 	if r == nil {
-		return ""
+		return "", nil
 	}
 	if start < 0 || end > r.length || start > end {
-		panic("slice bounds out of range")
+		return "", errSliceOutOfBounds(start, end, r.length)
 	}
 	if start == end {
-		return ""
+		return "", nil
 	}
-	return r.root.Slice(start, end)
+	return r.root.Slice(start, end), nil
 }
 
 // CharAt returns the rune at the given character position.
-// Panics if position is out of bounds.
-func (r *Rope) CharAt(pos int) rune {
+// Returns an error if position is out of bounds.
+func (r *Rope) CharAt(pos int) (rune, error) {
+	if r == nil || r.length == 0 {
+		return 0, errCharOutOfBounds(pos, 0)
+	}
 	if pos < 0 || pos >= r.length {
-		panic("character position out of range")
+		return 0, errCharOutOfBounds(pos, r.length)
 	}
 	// Use optimized iterator instead of []rune conversion
 	it := r.IteratorAt(pos)
 	it.Next() // Advance to the target position
-	return it.Current()
+	return it.Current(), nil
 }
 
 // ByteAt returns the byte at the given byte position.
-// Panics if position is out of bounds.
-func (r *Rope) ByteAt(pos int) byte {
+// Returns an error if position is out of bounds.
+func (r *Rope) ByteAt(pos int) (byte, error) {
+	if r == nil || r.size == 0 {
+		return 0, errByteOutOfBounds(pos, 0)
+	}
 	if pos < 0 || pos >= r.size {
-		panic("byte position out of range")
+		return 0, errByteOutOfBounds(pos, r.size)
 	}
 	// Use optimized bytes iterator instead of Bytes()
 	it := r.NewBytesIterator()
 	it.Seek(pos)
 	it.Next() // Move to the target position
-	return it.Current()
+	return it.Current(), nil
 }
 
 // ========== Helper Functions ==========
@@ -375,13 +397,20 @@ func deleteNode(node RopeNode, start, end int) RopeNode {
 
 // Insert inserts text at the given character position and returns a new Rope.
 // The original Rope is unchanged.
-// Panics if position is out of bounds.
-func (r *Rope) Insert(pos int, text string) *Rope {
+// Returns an error if position is out of bounds.
+func (r *Rope) Insert(pos int, text string) (*Rope, error) {
+	if r == nil {
+		// Allow insert into nil rope at position 0 only
+		if pos == 0 && text != "" {
+			return New(text), nil
+		}
+		return nil, errInsertOutOfBounds(pos, 0)
+	}
 	if pos < 0 || pos > r.length {
-		panic("insert position out of range")
+		return nil, errInsertOutOfBounds(pos, r.length)
 	}
 	if text == "" {
-		return r
+		return r, nil
 	}
 
 	newRoot := insertNode(r.root, pos, text)
@@ -389,49 +418,70 @@ func (r *Rope) Insert(pos int, text string) *Rope {
 		root:   newRoot,
 		length: r.length + utf8.RuneCountInString(text),
 		size:   r.size + len(text),
-	}
+	}, nil
 }
 
 // Delete removes characters from start to end (exclusive) and returns a new Rope.
 // The original Rope is unchanged.
-// Panics if range is out of bounds.
-func (r *Rope) Delete(start, end int) *Rope {
+// Returns an error if range is out of bounds.
+func (r *Rope) Delete(start, end int) (*Rope, error) {
+	if r == nil {
+		if start == 0 && end == 0 {
+			return nil, nil
+		}
+		return nil, errDeleteOutOfBounds(start, end, 0)
+	}
 	if start < 0 || end > r.length || start > end {
-		panic("delete range out of bounds")
+		return nil, errDeleteOutOfBounds(start, end, r.length)
 	}
 	if start == end {
-		return r
+		return r, nil
 	}
 
-	deletedLength := utf8.RuneCountInString(r.Slice(start, end))
-	deletedSize := len(r.Slice(start, end))
+	deletedStr, err := r.Slice(start, end)
+	if err != nil {
+		return nil, err
+	}
+	deletedLength := utf8.RuneCountInString(deletedStr)
+	deletedSize := len(deletedStr)
 
 	newRoot := deleteNode(r.root, start, end)
 	return &Rope{
 		root:   newRoot,
 		length: r.length - deletedLength,
 		size:   r.size - deletedSize,
-	}
+	}, nil
 }
 
 // Replace replaces characters from start to end (exclusive) with text and returns a new Rope.
 // The original Rope is unchanged.
-func (r *Rope) Replace(start, end int, text string) *Rope {
-	return r.Delete(start, end).Insert(start, text)
+// Returns an error if range is out of bounds.
+func (r *Rope) Replace(start, end int, text string) (*Rope, error) {
+	afterDelete, err := r.Delete(start, end)
+	if err != nil {
+		return nil, err
+	}
+	return afterDelete.Insert(start, text)
 }
 
 // Split splits the rope at the given character position.
 // Returns (left, right) where left contains [0, pos) and right contains [pos, end).
-// Panics if position is out of bounds.
-func (r *Rope) Split(pos int) (*Rope, *Rope) {
+// Returns an error if position is out of bounds.
+func (r *Rope) Split(pos int) (*Rope, *Rope, error) {
+	if r == nil {
+		if pos == 0 {
+			return Empty(), Empty(), nil
+		}
+		return nil, nil, errSplitOutOfBounds(pos, 0)
+	}
 	if pos < 0 || pos > r.length {
-		panic("split position out of range")
+		return nil, nil, errSplitOutOfBounds(pos, r.length)
 	}
 	if pos == 0 {
-		return Empty(), r
+		return Empty(), r, nil
 	}
 	if pos == r.length {
-		return r, Empty()
+		return r, Empty(), nil
 	}
 
 	leftRoot, rightRoot := splitNode(r.root, pos)
@@ -450,7 +500,7 @@ func (r *Rope) Split(pos int) (*Rope, *Rope) {
 	}
 	right.size = right.root.Size()
 
-	return left, right
+	return left, right, nil
 }
 
 // Concat concatenates two ropes and returns a new Rope.

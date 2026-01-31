@@ -37,13 +37,30 @@ func (d *RopeDocument) Length() int {
 	return d.rope.Length()
 }
 
+// LengthBytes returns the number of bytes in the document.
+// This provides explicit byte count matching Go's len() function semantics.
+func (d *RopeDocument) LengthBytes() int {
+	if d == nil || d.rope == nil {
+		return 0
+	}
+	return d.rope.LengthBytes()
+}
+
+// LengthChars returns the number of characters (code points) in the document.
+// This is an alias for Length() for clarity and explicit intent.
+func (d *RopeDocument) LengthChars() int {
+	return d.Length()
+}
+
 // Slice returns a substring from start to end (exclusive).
 // The indices are character positions (not byte positions).
+// Returns empty string on error to maintain Document interface compatibility.
 func (d *RopeDocument) Slice(start, end int) string {
 	if d == nil || d.rope == nil {
 		return ""
 	}
-	return d.rope.Slice(start, end)
+	s, _ := d.rope.Slice(start, end)
+	return s
 }
 
 // String returns the complete document content as a string.
@@ -85,35 +102,44 @@ func (d *RopeDocument) Rope() *rope.Rope {
 
 // Insert returns a new RopeDocument with text inserted at the given position.
 // This is a convenience method that wraps Rope.Insert().
-func (d *RopeDocument) Insert(pos int, text string) *RopeDocument {
+// Returns an error if position is out of bounds.
+func (d *RopeDocument) Insert(pos int, text string) (*RopeDocument, error) {
 	if d == nil {
-		return &RopeDocument{rope: rope.New(text)}
+		return &RopeDocument{rope: rope.New(text)}, nil
 	}
-	return &RopeDocument{
-		rope: d.rope.Insert(pos, text),
+	r, err := d.rope.Insert(pos, text)
+	if err != nil {
+		return nil, err
 	}
+	return &RopeDocument{rope: r}, nil
 }
 
 // Delete returns a new RopeDocument with characters removed from start to end.
 // This is a convenience method that wraps Rope.Delete().
-func (d *RopeDocument) Delete(start, end int) *RopeDocument {
+// Returns an error if range is out of bounds.
+func (d *RopeDocument) Delete(start, end int) (*RopeDocument, error) {
 	if d == nil {
-		return &RopeDocument{rope: rope.Empty()}
+		return &RopeDocument{rope: rope.Empty()}, nil
 	}
-	return &RopeDocument{
-		rope: d.rope.Delete(start, end),
+	r, err := d.rope.Delete(start, end)
+	if err != nil {
+		return nil, err
 	}
+	return &RopeDocument{rope: r}, nil
 }
 
 // Replace returns a new RopeDocument with characters replaced.
 // This is a convenience method that wraps Rope.Replace().
-func (d *RopeDocument) Replace(start, end int, text string) *RopeDocument {
+// Returns an error if range is out of bounds.
+func (d *RopeDocument) Replace(start, end int, text string) (*RopeDocument, error) {
 	if d == nil {
-		return &RopeDocument{rope: rope.New(text)}
+		return &RopeDocument{rope: rope.New(text)}, nil
 	}
-	return &RopeDocument{
-		rope: d.rope.Replace(start, end, text),
+	r, err := d.rope.Replace(start, end, text)
+	if err != nil {
+		return nil, err
 	}
+	return &RopeDocument{rope: r}, nil
 }
 
 // Concat returns a new RopeDocument with another document appended.
@@ -143,13 +169,17 @@ func (d *RopeDocument) Concat(other ot.Document) *RopeDocument {
 }
 
 // Split splits the document at the given position.
-func (d *RopeDocument) Split(pos int) (*RopeDocument, *RopeDocument) {
+// Returns an error if position is out of bounds.
+func (d *RopeDocument) Split(pos int) (*RopeDocument, *RopeDocument, error) {
 	if d == nil {
-		return &RopeDocument{rope: rope.Empty()}, &RopeDocument{rope: rope.Empty()}
+		return &RopeDocument{rope: rope.Empty()}, &RopeDocument{rope: rope.Empty()}, nil
 	}
 
-	left, right := d.rope.Split(pos)
-	return &RopeDocument{rope: left}, &RopeDocument{rope: right}
+	left, right, err := d.rope.Split(pos)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &RopeDocument{rope: left}, &RopeDocument{rope: right}, nil
 }
 
 // ========== Type Conversion ==========
@@ -330,20 +360,26 @@ func CloneDocument(doc ot.Document) *RopeDocument {
 }
 
 // MergeDocuments merges multiple documents into one RopeDocument.
-func MergeDocuments(docs ...ot.Document) *RopeDocument {
+// Returns an error if any operation fails.
+func MergeDocuments(docs ...ot.Document) (*RopeDocument, error) {
 	builder := rope.NewBuilder()
 	for _, doc := range docs {
 		if doc != nil {
 			builder.Append(doc.String())
 		}
 	}
-	return &RopeDocument{rope: builder.Build()}
+	r, err := builder.Build()
+	if err != nil {
+		return nil, err
+	}
+	return &RopeDocument{rope: r}, nil
 }
 
 // JoinDocuments joins multiple documents with a separator.
-func JoinDocuments(docs []ot.Document, separator string) *RopeDocument {
+// Returns an error if any operation fails.
+func JoinDocuments(docs []ot.Document, separator string) (*RopeDocument, error) {
 	if len(docs) == 0 {
-		return EmptyDocument()
+		return EmptyDocument(), nil
 	}
 
 	builder := rope.NewBuilder()
@@ -355,7 +391,11 @@ func JoinDocuments(docs []ot.Document, separator string) *RopeDocument {
 			builder.Append(separator)
 		}
 	}
-	return &RopeDocument{rope: builder.Build()}
+	r, err := builder.Build()
+	if err != nil {
+		return nil, err
+	}
+	return &RopeDocument{rope: r}, nil
 }
 
 // ========== Document Persistence ==========
@@ -410,22 +450,31 @@ func (b *DocumentBuilder) AppendLine(line string) *DocumentBuilder {
 }
 
 // Insert inserts text at the given position.
+// The operation is batched and applied during Build().
 func (b *DocumentBuilder) Insert(pos int, text string) *DocumentBuilder {
 	b.builder.Insert(pos, text)
 	return b
 }
 
 // Delete deletes characters from start to end.
-func (b *DocumentBuilder) Delete(start, end int) *DocumentBuilder {
-	b.builder.Delete(start, end)
-	return b
+// Returns an error if range is out of bounds.
+func (b *DocumentBuilder) Delete(start, end int) (*DocumentBuilder, error) {
+	bldr, err := b.builder.Delete(start, end)
+	if err != nil {
+		return nil, err
+	}
+	b.builder = bldr
+	return b, nil
 }
 
 // Build builds the final RopeDocument.
-func (b *DocumentBuilder) Build() *RopeDocument {
-	return &RopeDocument{
-		rope: b.builder.Build(),
+// Returns an error if any operation failed.
+func (b *DocumentBuilder) Build() (*RopeDocument, error) {
+	r, err := b.builder.Build()
+	if err != nil {
+		return nil, err
 	}
+	return &RopeDocument{rope: r}, nil
 }
 
 // Reset resets the builder for reuse.

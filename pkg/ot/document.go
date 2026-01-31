@@ -12,6 +12,13 @@ type Document interface {
 	// Length returns the length of the document in bytes.
 	Length() int
 
+	// LengthBytes returns the length of the document in bytes.
+	// This is an alias for Length() for explicit intent.
+	LengthBytes() int
+
+	// LengthChars returns the length of the document in characters (code points).
+	LengthChars() int
+
 	// String returns the document content as a string.
 	String() string
 

@@ -212,16 +212,16 @@ func NormalizeLineEndingsToLF(text []byte) []byte {
 // ========== CRLF-Aware Rope Operations ==========
 
 // SplitCRLFSafe splits a rope at a position without breaking CRLF pairs.
-func (r *Rope) SplitCRLFSafe(pos int) (*Rope, *Rope) {
+func (r *Rope) SplitCRLFSafe(pos int) (*Rope, *Rope, error) {
 	if r == nil {
-		return Empty(), Empty()
+		return Empty(), Empty(), nil
 	}
 
 	if pos <= 0 {
-		return Empty(), r.Clone()
+		return Empty(), r.Clone(), nil
 	}
 	if pos >= r.Length() {
-		return r.Clone(), Empty()
+		return r.Clone(), Empty(), nil
 	}
 
 	// Convert position to bytes

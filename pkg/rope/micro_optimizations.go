@@ -8,30 +8,30 @@ import (
 // ========== Micro-Optimizations for Peak Performance ==========
 
 // InsertFast is the fastest insertion implementation with fast paths.
-func (r *Rope) InsertFast(pos int, text string) *Rope {
+func (r *Rope) InsertFast(pos int, text string) (*Rope, error) {
 	// Fast path 1: Empty text
 	if text == "" {
-		return r
+		return r, nil
 	}
 
 	// Fast path 2: Nil or empty rope
 	if r == nil || r.length == 0 {
-		return New(text)
+		return New(text), nil
 	}
 
 	// Fast path 3: Insert at beginning
 	if pos == 0 {
-		return r.Prepend(text)
+		return r.Prepend(text), nil
 	}
 
 	// Fast path 4: Insert at end
 	if pos == r.length {
-		return r.Append(text)
+		return r.Append(text), nil
 	}
 
 	// Fast path 5: Small rope with single leaf (avoid tree traversal)
 	if r.root.IsLeaf() {
-		return insertIntoSingleLeaf(r, pos, text)
+		return insertIntoSingleLeaf(r, pos, text), nil
 	}
 
 	// Standard path for complex cases
@@ -39,25 +39,25 @@ func (r *Rope) InsertFast(pos int, text string) *Rope {
 }
 
 // DeleteFast is the fastest deletion implementation with fast paths.
-func (r *Rope) DeleteFast(start, end int) *Rope {
+func (r *Rope) DeleteFast(start, end int) (*Rope, error) {
 	// Fast path 1: Nil or empty
 	if r == nil || r.length == 0 {
-		return r
+		return r, nil
 	}
 
 	// Fast path 2: Empty range
 	if start == end {
-		return r
+		return r, nil
 	}
 
 	// Fast path 3: Delete all
 	if start == 0 && end == r.length {
-		return Empty()
+		return Empty(), nil
 	}
 
 	// Fast path 4: Small rope with single leaf
 	if r.root.IsLeaf() {
-		return deleteFromSingleLeaf(r, start, end)
+		return deleteFromSingleLeaf(r, start, end), nil
 	}
 
 	// Fast path 5: Delete from beginning
@@ -78,21 +78,21 @@ func (r *Rope) DeleteFast(start, end int) *Rope {
 // Use Append() and Prepend() directly instead.
 
 // SliceFast is the fastest slice implementation with optimizations.
-func (r *Rope) SliceFast(start, end int) string {
+func (r *Rope) SliceFast(start, end int) (string, error) {
 	// Fast path 1: Full slice
 	if start == 0 && end == r.length {
-		return r.String()
+		return r.String(), nil
 	}
 
 	// Fast path 2: Empty slice
 	if start == end {
-		return ""
+		return "", nil
 	}
 
 	// Fast path 3: Single leaf
 	if r.root.IsLeaf() {
 		leaf := r.root.(*LeafNode)
-		return sliceSingleLeaf(leaf, start, end)
+		return sliceSingleLeaf(leaf, start, end), nil
 	}
 
 	// Standard path
@@ -100,8 +100,12 @@ func (r *Rope) SliceFast(start, end int) string {
 }
 
 // SliceToRope returns a slice as a new Rope.
-func (r *Rope) SliceToRope(start, end int) *Rope {
-	return New(r.SliceFast(start, end))
+func (r *Rope) SliceToRope(start, end int) (*Rope, error) {
+	slice, err := r.SliceFast(start, end)
+	if err != nil {
+		return nil, err
+	}
+	return New(slice), nil
 }
 
 // ========== Single Leaf Optimizations ==========
@@ -135,7 +139,8 @@ func insertIntoSingleLeaf(r *Rope, pos int, text string) *Rope {
 	}
 
 	// Standard insertion in middle
-	return r.InsertOptimized(pos, text)
+	result, _ := r.InsertOptimized(pos, text)
+	return result
 }
 
 // deleteFromSingleLeaf optimizes deletion from a single leaf.
@@ -174,7 +179,8 @@ func deleteFromSingleLeaf(r *Rope, start, end int) *Rope {
 	}
 
 	// Standard deletion
-	return r.DeleteOptimized(start, end)
+	result, _ := r.DeleteOptimized(start, end)
+	return result
 }
 
 // sliceSingleLeaf optimizes slicing a single leaf.
@@ -225,9 +231,9 @@ func findBytePosInString(s string, charPos int) int {
 
 // BatchInsert performs multiple insertions efficiently.
 // Positions are relative to the original rope (not updated after each insertion).
-func (r *Rope) BatchInsert(inserts []Insertion) *Rope {
+func (r *Rope) BatchInsert(inserts []Insertion) (*Rope, error) {
 	if len(inserts) == 0 {
-		return r
+		return r, nil
 	}
 
 	// Fast path for single insertion
@@ -246,18 +252,22 @@ func (r *Rope) BatchInsert(inserts []Insertion) *Rope {
 
 	// Apply inserts from right to left (positions stay valid)
 	result := r
+	var err error
 	for _, ins := range sortedInserts {
-		result = result.InsertFast(ins.Pos, ins.Text)
+		result, err = result.InsertFast(ins.Pos, ins.Text)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return result
+	return result, nil
 }
 
 // BatchDelete performs multiple deletions efficiently.
 // Ranges are relative to the original rope.
-func (r *Rope) BatchDelete(ranges []Range) *Rope {
+func (r *Rope) BatchDelete(ranges []Range) (*Rope, error) {
 	if len(ranges) == 0 {
-		return r
+		return r, nil
 	}
 
 	// Fast path for single deletion
@@ -276,11 +286,15 @@ func (r *Rope) BatchDelete(ranges []Range) *Rope {
 
 	// Apply deletions from right to left (positions stay valid)
 	result := r
+	var err error
 	for _, rng := range sortedRanges {
-		result = result.DeleteFast(rng.From(), rng.To())
+		result, err = result.DeleteFast(rng.From(), rng.To())
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return result
+	return result, nil
 }
 
 // Insertion represents a single insertion operation.

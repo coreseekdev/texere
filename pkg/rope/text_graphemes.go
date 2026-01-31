@@ -253,10 +253,15 @@ func (r *Rope) IsGraphemeBoundary(charIdx int) bool {
 }
 
 // GraphemeSlice returns a new rope containing graphemes from start to end (in grapheme indices).
-// Panics if indices are out of bounds.
-func (r *Rope) GraphemeSlice(start, end int) *Rope {
+// Returns an error if indices are out of bounds.
+func (r *Rope) GraphemeSlice(start, end int) (*Rope, error) {
 	if start < 0 || end > r.LenGraphemes() || start > end {
-		panic("grapheme slice indices out of bounds")
+		return nil, &ErrInvalidRange{
+			Operation: "GraphemeSlice",
+			Start:     start,
+			End:       end,
+			ValidMax:  r.LenGraphemes(),
+		}
 	}
 
 	it := r.Graphemes()
@@ -330,9 +335,9 @@ func (r *Rope) ForEachGrapheme(f func(Grapheme)) {
 }
 
 // MapGraphemes creates a new rope by applying the function to each grapheme.
-func (r *Rope) MapGraphemes(f func(Grapheme) string) *Rope {
+func (r *Rope) MapGraphemes(f func(Grapheme) string) (*Rope, error) {
 	if r == nil || r.Length() == 0 {
-		return r
+		return r, nil
 	}
 
 	builder := NewBuilder()
@@ -345,9 +350,9 @@ func (r *Rope) MapGraphemes(f func(Grapheme) string) *Rope {
 }
 
 // FilterGraphemes creates a new rope with graphemes that satisfy the predicate.
-func (r *Rope) FilterGraphemes(pred func(Grapheme) bool) *Rope {
+func (r *Rope) FilterGraphemes(pred func(Grapheme) bool) (*Rope, error) {
 	if r == nil || r.Length() == 0 {
-		return r
+		return r, nil
 	}
 
 	builder := NewBuilder()

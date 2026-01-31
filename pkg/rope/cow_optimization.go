@@ -134,15 +134,20 @@ func nodeToString(node RopeNode) string {
 }
 
 // Insert inserts text at position with COW optimization.
-func (r *CowRope) Insert(pos int, text string) *CowRope {
+func (r *CowRope) Insert(pos int, text string) (*CowRope, error) {
 	if r == nil {
-		return NewCowRope(text)
+		return NewCowRope(text), nil
 	}
 	if pos < 0 || pos > r.length {
-		panic("insert position out of range")
+		return nil, &ErrOutOfBounds{
+			Operation: "CowRope.Insert",
+			Position:  pos,
+			Min:       0,
+			Max:       r.length + 1,
+		}
 	}
 	if text == "" {
-		return r
+		return r, nil
 	}
 
 	newRoot := cowInsert(r.root.CloneIfNeeded(), pos, text)
@@ -152,7 +157,7 @@ func (r *CowRope) Insert(pos int, text string) *CowRope {
 		size:   r.size + len(text),
 	}
 	r.root.Retain() // Retain old root for sharing
-	return result
+	return result, nil
 }
 
 // cowInsert performs COW insertion.
@@ -203,19 +208,25 @@ func splitAndInsert(leaf *LeafNode, pos int, text string) RopeNode {
 }
 
 // Delete removes characters with COW optimization.
-func (r *CowRope) Delete(start, end int) *CowRope {
+func (r *CowRope) Delete(start, end int) (*CowRope, error) {
 	if r == nil {
-		return r
+		return r, nil
 	}
 	if start < 0 || end > r.length || start > end {
-		panic("delete range out of bounds")
+		return nil, &ErrInvalidRange{
+			Operation: "CowRope.Delete",
+			Start:     start,
+			End:       end,
+			ValidMax:  r.length,
+		}
 	}
 	if start == end {
-		return r
+		return r, nil
 	}
 
-	deletedLen := utf8.RuneCountInString(nodeSlice(r.root.node, start, end))
-	deletedSize := len(nodeSlice(r.root.node, start, end))
+	deletedText := nodeSlice(r.root.node, start, end)
+	deletedLen := utf8.RuneCountInString(deletedText)
+	deletedSize := len(deletedText)
 
 	newRoot := cowDelete(r.root.CloneIfNeeded(), start, end)
 	result := &CowRope{
@@ -224,7 +235,7 @@ func (r *CowRope) Delete(start, end int) *CowRope {
 		size:   r.size - deletedSize,
 	}
 	r.root.Retain() // Retain old root for sharing
-	return result
+	return result, nil
 }
 
 // cowDelete performs COW deletion.

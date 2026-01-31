@@ -210,13 +210,13 @@ func (r *Rope) AnalyzePerformance() PerformanceAnalysis {
 
 	analysis.Benchmarks["CharAt"] = ProfileOperation("CharAt", iterations, func() {
 		if r.Length() > 0 {
-			_ = r.CharAt(r.Length() / 2)
+			_, _ = r.CharAt(r.Length() / 2)
 		}
 	})
 
 	analysis.Benchmarks["Slice"] = ProfileOperation("Slice", iterations, func() {
 		if r.Length() > 10 {
-			_ = r.Slice(r.Length()/4, r.Length()*3/4)
+			_, _ = r.Slice(r.Length()/4, r.Length()*3/4)
 		}
 	})
 
