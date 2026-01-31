@@ -99,7 +99,7 @@ func TestRopeDocument_Clone(t *testing.T) {
 
 func TestRopeDocument_Insert(t *testing.T) {
 	doc := NewRopeDocument("World")
-	doc2 := doc.Insert(0, "Hello ")
+	doc2, _ := doc.Insert(0, "Hello ")
 
 	assert.Equal(t, "Hello World", doc2.String())
 	assert.Equal(t, "World", doc.String())
@@ -107,7 +107,7 @@ func TestRopeDocument_Insert(t *testing.T) {
 
 func TestRopeDocument_Delete(t *testing.T) {
 	doc := NewRopeDocument("Hello World")
-	doc2 := doc.Delete(5, 11)
+	doc2, _ := doc.Delete(5, 11)
 
 	assert.Equal(t, "Hello", doc2.String())
 }
@@ -137,7 +137,7 @@ func TestDocumentBuilder_Basic(t *testing.T) {
 	b.Append(" ")
 	b.Append("World")
 
-	doc := b.Build()
+	doc, _ := b.Build()
 	assert.Equal(t, "Hello World", doc.String())
 }
 
@@ -146,7 +146,7 @@ func TestDocumentBuilder_AppendLine(t *testing.T) {
 	b.AppendLine("Line1")
 	b.AppendLine("Line2")
 
-	doc := b.Build()
+	doc, _ := b.Build()
 	assert.Equal(t, "Line1\nLine2\n", doc.String())
 }
 
@@ -156,6 +156,6 @@ func TestDocumentBuilder_Reset(t *testing.T) {
 	b.Reset()
 	b.Append("World")
 
-	doc := b.Build()
+	doc, _ := b.Build()
 	assert.Equal(t, "World", doc.String())
 }

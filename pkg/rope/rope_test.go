@@ -69,9 +69,13 @@ func TestSlice_Basic(t *testing.T) {
 func TestSlice_OutOfBounds(t *testing.T) {
 	r := New("Hello")
 
-	assert.Panics(t, func() { r.Slice(-1, 3) })
-	assert.Panics(t, func() { r.Slice(0, 10) })
-	assert.Panics(t, func() { r.Slice(3, 2) })
+	// Slice now returns errors instead of panicking
+	_, err := r.Slice(-1, 3)
+	assert.Error(t, err)
+	_, err = r.Slice(0, 10)
+	assert.Error(t, err)
+	_, err = r.Slice(3, 2)
+	assert.Error(t, err)
 }
 
 func TestCharAt(t *testing.T) {
@@ -87,8 +91,11 @@ func TestCharAt(t *testing.T) {
 
 func TestCharAt_OutOfBounds(t *testing.T) {
 	r := New("Hello")
-	assert.Panics(t, func() { r.CharAt(-1) })
-	assert.Panics(t, func() { r.CharAt(10) })
+	// CharAt now returns errors instead of panicking
+	_, err := r.CharAt(-1)
+	assert.Error(t, err)
+	_, err = r.CharAt(10)
+	assert.Error(t, err)
 }
 
 func TestByteAt(t *testing.T) {
@@ -135,8 +142,11 @@ func TestInsert_EmptyString(t *testing.T) {
 
 func TestInsert_OutOfBounds(t *testing.T) {
 	r := New("Hello")
-	assert.Panics(t, func() { r.Insert(-1, "X") })
-	assert.Panics(t, func() { r.Insert(10, "X") })
+	// Insert now returns errors instead of panicking
+	_, err := r.Insert(-1, "X")
+	assert.Error(t, err)
+	_, err = r.Insert(10, "X")
+	assert.Error(t, err)
 }
 
 // ========== Delete Tests ==========
@@ -180,9 +190,13 @@ func TestDelete_EmptyRange(t *testing.T) {
 
 func TestDelete_OutOfBounds(t *testing.T) {
 	r := New("Hello")
-	assert.Panics(t, func() { r.Delete(-1, 3) })
-	assert.Panics(t, func() { r.Delete(0, 10) })
-	assert.Panics(t, func() { r.Delete(3, 2) })
+	// Delete now returns errors instead of panicking
+	_, err := r.Delete(-1, 3)
+	assert.Error(t, err)
+	_, err = r.Delete(0, 10)
+	assert.Error(t, err)
+	_, err = r.Delete(3, 2)
+	assert.Error(t, err)
 }
 
 // ========== Replace Tests ==========
@@ -229,8 +243,11 @@ func TestSplit_End(t *testing.T) {
 
 func TestSplit_OutOfBounds(t *testing.T) {
 	r := New("Hello")
-	assert.Panics(t, func() { r.Split(-1) })
-	assert.Panics(t, func() { r.Split(10) })
+	// Split now returns errors instead of panicking
+	_, _, err := r.Split(-1)
+	assert.Error(t, err)
+	_, _, err = r.Split(10)
+	assert.Error(t, err)
 }
 
 // ========== Concat Tests ==========
@@ -423,8 +440,11 @@ func TestEdgeCase_EmptyRope(t *testing.T) {
 
 	assert.Equal(t, 0, r.Length())
 	assert.Equal(t, "", r.String())
-	assert.Panics(t, func() { r.CharAt(0) })
-	assert.Panics(t, func() { r.Slice(0, 1) })
+	// CharAt and Slice now return errors instead of panicking
+	_, err := r.CharAt(0)
+	assert.Error(t, err)
+	_, err = r.Slice(0, 1)
+	assert.Error(t, err)
 }
 
 func TestEdgeCase_SingleChar(t *testing.T) {

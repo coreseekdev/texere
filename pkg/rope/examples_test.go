@@ -245,7 +245,7 @@ func ExampleRope_bytesIteration() {
 	// Iterate over bytes
 	it := r.NewBytesIterator()
 	for it.Next() {
-		fmt.Printf("Byte %d: %c\n", it.Position()-1, it.Current())
+		fmt.Printf("Byte %d: %c\n", it.Position(), it.Current())
 	}
 	// Output:
 	// Byte 0: H

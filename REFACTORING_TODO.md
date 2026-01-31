@@ -113,20 +113,27 @@ Enhanced iterator pooling implementation:
 - Added corresponding release functions
 - Added benchmarks comparing pooled vs non-pooled performance
 
+### 10. Builder Pattern Refactoring ✅
+**Status:** COMPLETED
+
+Implemented Option B for builder pattern (error accumulation):
+- Added `err` field to `RopeBuilder` and `Error()` method
+- All builder methods now maintain fluent API (return `*RopeBuilder`)
+- Errors are stored internally and accessible via `Error()`
+- Updated `DocumentBuilder` in concordia to match pattern
+- Added bounds checking to `InsertFast()` and `DeleteFast()`
+
+### 11. Iterator Unification ✅
+**Status:** COMPLETED
+
+Created unified iterator interfaces in `pkg/rope/iterator_interfaces.go`:
+- Core generic interfaces: `Seq[T]`, `PositionalSeq[T]`, `FullSeq[T]`, etc.
+- Type-specific behavior interfaces for each iterator type
+- Go 1.23+ adapter functions: `IterRunes()`, `IterBytes()`, `IterGraphemes()`, etc.
+- Named interfaces "Seq" to avoid conflict with existing `Iterator` type
+
 ## Deferred Tasks
 **Reason:** Defer for later as it requires significant design work
-
-The `RopeBuilder` currently has mixed API:
-- `Append`, `AppendLine`, `Insert` return `*RopeBuilder` (fluent API)
-- `Delete`, `Replace`, `Build` return `(*RopeBuilder, error)` or `(*Rope, error)`
-
-**Future Work:**
-1. Decide on consistent error handling strategy for builder pattern:
-   - Option A: All methods return errors (breaks fluent API)
-   - Option B: Store first error internally, add `Error()` method (like `bytes.Buffer`)
-   - Option C: Separate `Build()` that returns error, rest are fluent
-
-2. Update `DocumentBuilder` in `pkg/concordia/document.go` to match
 
 ### File Reorganization
 **Reason:** Requires separate project, too many files to reorganize
@@ -171,31 +178,37 @@ Many methods lack complete documentation:
 4. Document thread-safety guarantees (Rope is immutable, safe for concurrent reads)
 5. Add package-level documentation explaining when to use Rope vs StringDocument
 
-### Iterator Unification
-**Reason:** Requires research into Go standard library patterns
+### Iterator Unification ✅
+**Status:** COMPLETED
 
-Multiple iterator types exist:
-- `RuneIterator` (forward rune iteration)
-- `ReverseIterator` (reverse rune iteration)
-- `BytesIterator` (byte iteration)
-- `ChunkIterator` (chunk iteration)
-- `LinesIterator` (line iteration)
-- `GraphemesIterator` (grapheme iteration)
+Created unified iterator interfaces in `pkg/rope/iterator_interfaces.go`:
 
-**Future Work:**
-1. Evaluate Go 1.23+ `iter` package (standard library iterators)
-2. Consider adopting `iter.Seq` patterns where applicable
-3. Ensure all iterators follow consistent interface:
-   ```go
-   type Iterator[T any] interface {
-       Next() bool
-       Current() T
-       Position() int
-       HasNext() bool
-       Reset()
-   }
-   ```
-4. Add iterator pooling for performance (reuse iterator objects)
+**Core Interfaces:**
+- `Seq[T any]` - Minimal iterator interface (Next + Current)
+- `PositionalSeq[T]` - Adds position tracking
+- `ResettableSeq[T]` - Adds reset capability
+- `StatefulSeq[T]` - Adds state query (HasNext, IsExhausted)
+- `SeekableSeq[T]` - Adds random access (Seek)
+- `PeekableSeq[T]` - Adds lookahead (Peek)
+- `CollectingSeq[T]` - Adds bulk collection (Collect)
+- `FullSeq[T]` - Combines all capabilities
+
+**Type-Specific Interfaces:**
+- `RuneIteratorBehavior` - Character iteration
+- `ReverseIteratorBehavior` - Reverse character iteration
+- `BytesIteratorBehavior` - Byte iteration
+- `LinesIteratorBehavior` - Line iteration
+- `GraphemeIteratorBehavior` - Grapheme cluster iteration
+
+**Go 1.23+ Compatibility:**
+Added adapter functions for use with for-range loops:
+- `IterRunes(r)` - Iterate over runes
+- `IterBytes(r)` - Iterate over bytes
+- `IterGraphemes(r)` - Iterate over grapheme clusters
+- `IterLines(r)` - Iterate over lines
+- `IterReverse(r)` - Iterate in reverse
+
+**Note:** Named interfaces "Seq" instead of "Iterator" to avoid conflict with existing `Iterator` type.
 
 ### API Naming Consistency
 **Reason:** Minor inconsistencies, not critical

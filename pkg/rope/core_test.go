@@ -454,13 +454,19 @@ func TestIndexAtEnd(t *testing.T) {
 func TestRopey_InvalidIndex(t *testing.T) {
 	r := New("Hello")
 
-	// These should panic
-	assert.Panics(t, func() { r.Insert(-1, "X") })
-	assert.Panics(t, func() { r.Insert(10, "X") })
-	assert.Panics(t, func() { r.Delete(-1, 3) })
-	assert.Panics(t, func() { r.Delete(0, 10) })
-	assert.Panics(t, func() { r.Slice(-1, 3) })
-	assert.Panics(t, func() { r.Slice(0, 10) })
+	// These now return errors instead of panicking
+	_, err := r.Insert(-1, "X")
+	assert.Error(t, err)
+	_, err = r.Insert(10, "X")
+	assert.Error(t, err)
+	_, err = r.Delete(-1, 3)
+	assert.Error(t, err)
+	_, err = r.Delete(0, 10)
+	assert.Error(t, err)
+	_, err = r.Slice(-1, 3)
+	assert.Error(t, err)
+	_, err = r.Slice(0, 10)
+	assert.Error(t, err)
 }
 
 // ========== Integrity and Invariant Tests ==========

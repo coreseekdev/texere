@@ -55,7 +55,9 @@ func TestReverseIterator_NilRope(t *testing.T) {
 
 	assert.True(t, it.IsExhausted())
 	assert.False(t, it.Next())
-	assert.Panics(t, func() { it.Current() })
+	// Current() now returns an error instead of panicking
+	_, err := it.Current()
+	assert.Error(t, err)
 }
 
 // TestReverseIterator_BasicIteration tests basic reverse iteration

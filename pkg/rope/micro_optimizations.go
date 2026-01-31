@@ -9,6 +9,11 @@ import (
 
 // InsertFast is the fastest insertion implementation with fast paths.
 func (r *Rope) InsertFast(pos int, text string) (*Rope, error) {
+	// Validate position
+	if pos < 0 || (r != nil && pos > r.length) {
+		return nil, errInsertOutOfBounds(pos, r.length)
+	}
+
 	// Fast path 1: Empty text
 	if text == "" {
 		return r, nil
@@ -42,7 +47,16 @@ func (r *Rope) InsertFast(pos int, text string) (*Rope, error) {
 func (r *Rope) DeleteFast(start, end int) (*Rope, error) {
 	// Fast path 1: Nil or empty
 	if r == nil || r.length == 0 {
+		// Validate range for nil rope (only valid if start==end==0)
+		if r == nil && (start != 0 || end != 0) {
+			return nil, errSliceOutOfBounds(start, end, 0)
+		}
 		return r, nil
+	}
+
+	// Validate range
+	if start < 0 || end > r.length || start > end {
+		return nil, errSliceOutOfBounds(start, end, r.length)
 	}
 
 	// Fast path 2: Empty range

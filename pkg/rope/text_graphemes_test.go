@@ -323,13 +323,12 @@ func TestGrapheme_OutOfBounds(t *testing.T) {
 		r.GraphemeAt(100)
 	})
 
-	assert.Panics(t, func() {
-		r.GraphemeSlice(-1, 3)
-	})
+	// GraphemeSlice now returns errors instead of panicking
+	_, err := r.GraphemeSlice(-1, 3)
+	assert.Error(t, err)
 
-	assert.Panics(t, func() {
-		r.GraphemeSlice(0, 100)
-	})
+	_, err = r.GraphemeSlice(0, 100)
+	assert.Error(t, err)
 }
 
 func TestGrapheme_ComplexUnicode(t *testing.T) {

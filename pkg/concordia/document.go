@@ -426,6 +426,25 @@ func FromRunes(runes []rune) *RopeDocument {
 // ========== Document Builder ==========
 
 // DocumentBuilder provides a convenient way to build a RopeDocument.
+//
+// Error Handling Pattern:
+// - All methods maintain the fluent API (return *DocumentBuilder)
+// - Errors are stored internally and accessible via Error()
+// - Build() returns error if any operation failed
+//
+// Example:
+//
+//	builder := concordia.NewDocumentBuilder()
+//	builder.Append("Hello")
+//	builder.Insert(5, " World")
+//	builder.Delete(100, 200)  // Invalid range, but doesn't break the chain
+//	doc, err := builder.Build()  // Check error here
+//	if err != nil {
+//	    if builderErr := builder.Error(); builderErr != nil {
+//	        // Handle the specific operation that failed
+//	    }
+//	    return err
+//	}
 type DocumentBuilder struct {
 	builder *rope.RopeBuilder
 }
@@ -435,6 +454,15 @@ func NewDocumentBuilder() *DocumentBuilder {
 	return &DocumentBuilder{
 		builder: rope.NewBuilder(),
 	}
+}
+
+// Error returns the first error encountered during builder operations,
+// or nil if no errors occurred.
+//
+// Once an error is set, all subsequent operations become no-ops
+// (the error is retained).
+func (b *DocumentBuilder) Error() error {
+	return b.builder.Error()
 }
 
 // Append appends text to the concordia.
@@ -457,14 +485,13 @@ func (b *DocumentBuilder) Insert(pos int, text string) *DocumentBuilder {
 }
 
 // Delete deletes characters from start to end.
-// Returns an error if range is out of bounds.
-func (b *DocumentBuilder) Delete(start, end int) (*DocumentBuilder, error) {
-	bldr, err := b.builder.Delete(start, end)
-	if err != nil {
-		return nil, err
-	}
-	b.builder = bldr
-	return b, nil
+//
+// If an error occurs, it is stored internally and can be accessed via Error().
+//
+// Once an error is set, all subsequent operations become no-ops.
+func (b *DocumentBuilder) Delete(start, end int) *DocumentBuilder {
+	b.builder.Delete(start, end)
+	return b
 }
 
 // Build builds the final RopeDocument.

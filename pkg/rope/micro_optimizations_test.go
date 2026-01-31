@@ -653,17 +653,16 @@ func TestBatchDelete_LargeNumber(t *testing.T) {
 func TestInsertFast_EdgeCases(t *testing.T) {
 	t.Run("Insert at position beyond length", func(t *testing.T) {
 		r := New("Hi")
-		// This should panic or handle gracefully
-		assert.Panics(t, func() {
-			r.InsertFast(10, "Test")
-		})
+		// InsertFast now returns errors instead of panicking
+		_, err := r.InsertFast(10, "Test")
+		assert.Error(t, err)
 	})
 
 	t.Run("Insert at negative position", func(t *testing.T) {
 		r := New("Hi")
-		assert.Panics(t, func() {
-			r.InsertFast(-1, "Test")
-		})
+		// InsertFast now returns errors instead of panicking
+		_, err := r.InsertFast(-1, "Test")
+		assert.Error(t, err)
 	})
 }
 

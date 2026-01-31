@@ -13,16 +13,32 @@ import (
 // - Deferring tree construction
 // - Reducing rebalancing operations
 //
+// # Error Handling
+//
+// RopeBuilder uses an error accumulation pattern (like bytes.Buffer):
+// - All methods maintain the fluent API (return *RopeBuilder)
+// - Errors are stored internally and accessible via Error()
+// - Build() returns error if any operation failed
+//
+// This provides a clean fluent API while ensuring errors aren't silently ignored.
+//
 // Example usage:
 //
 //	builder := rope.NewBuilder()
 //	builder.Append("Hello")
-//	builder.Append(" ")
-//	builder.Append("World")
-//	r := builder.Build()
+//	builder.Insert(5, " World")
+//	builder.Delete(100, 200)  // Invalid range, but doesn't break the chain
+//	r, err := builder.Build()  // Check error here
+//	if err != nil {
+//		if builderErr := builder.Error(); builderErr != nil {
+//			// Handle the specific operation that failed
+//		}
+//		return err
+//	}
 type RopeBuilder struct {
 	rope    *Rope
 	pending []pendingInsert
+	err     error // First error encountered during operations
 }
 
 // pendingInsert represents an insertion operation waiting to be applied.
@@ -36,6 +52,7 @@ func NewBuilder() *RopeBuilder {
 	return &RopeBuilder{
 		rope:    Empty(),
 		pending: make([]pendingInsert, 0, 16),
+		err:     nil,
 	}
 }
 
@@ -44,12 +61,32 @@ func NewBuilderFromRope(r *Rope) *RopeBuilder {
 	return &RopeBuilder{
 		rope:    r,
 		pending: make([]pendingInsert, 0, 16),
+		err:     nil,
 	}
+}
+
+// Error returns the first error encountered during builder operations,
+// or nil if no errors occurred.
+//
+// Once an error is set, all subsequent operations become no-ops
+// (the error is retained).
+//
+// Example:
+//
+//	if builder.Error() != nil {
+//	    // An operation failed earlier
+//	    return builder.Error()
+//	}
+func (b *RopeBuilder) Error() error {
+	return b.err
 }
 
 // Append adds text to the end of the rope.
 // This is optimized by batching with other append operations.
 func (b *RopeBuilder) Append(text string) *RopeBuilder {
+	if b.err != nil {
+		return b // Already have an error, no-op
+	}
 	if text == "" {
 		return b
 	}
@@ -87,6 +124,9 @@ func (b *RopeBuilder) Append(text string) *RopeBuilder {
 //	buf := []byte("Hello World")
 //	builder.AppendBytes(buf)  // No allocation, vs builder.Append(string(buf))
 func (b *RopeBuilder) AppendBytes(data []byte) *RopeBuilder {
+	if b.err != nil {
+		return b // Already have an error, no-op
+	}
 	if len(data) == 0 {
 		return b
 	}
@@ -113,6 +153,9 @@ func (b *RopeBuilder) AppendBytes(data []byte) *RopeBuilder {
 
 // Insert inserts text at the specified character position.
 func (b *RopeBuilder) Insert(pos int, text string) *RopeBuilder {
+	if b.err != nil {
+		return b // Already have an error, no-op
+	}
 	if text == "" {
 		return b
 	}
@@ -126,31 +169,55 @@ func (b *RopeBuilder) Insert(pos int, text string) *RopeBuilder {
 
 // Delete removes characters from start to end (exclusive).
 // This operation is applied immediately (not batched).
-// Returns an error if the range is invalid.
-func (b *RopeBuilder) Delete(start, end int) (*RopeBuilder, error) {
-	if err := b.flush(); err != nil {
-		return nil, err
+//
+// If an error occurs, it is stored internally and can be accessed via Error().
+// The error is also returned for convenience.
+//
+// Once an error is set, all subsequent operations become no-ops.
+func (b *RopeBuilder) Delete(start, end int) *RopeBuilder {
+	if b.err != nil {
+		return b // Already have an error, no-op
 	}
+
+	if err := b.flush(); err != nil {
+		b.err = err
+		return b
+	}
+
 	rope, err := b.rope.Delete(start, end)
 	if err != nil {
-		return nil, err
+		b.err = err
+		return b
 	}
+
 	b.rope = rope
-	return b, nil
+	return b
 }
 
 // Replace replaces characters from start to end (exclusive) with the given text.
-// Returns an error if the range is invalid.
-func (b *RopeBuilder) Replace(start, end int, text string) (*RopeBuilder, error) {
-	if err := b.flush(); err != nil {
-		return nil, err
+//
+// If an error occurs, it is stored internally and can be accessed via Error().
+// The error is also returned for convenience.
+//
+// Once an error is set, all subsequent operations become no-ops.
+func (b *RopeBuilder) Replace(start, end int, text string) *RopeBuilder {
+	if b.err != nil {
+		return b // Already have an error, no-op
 	}
+
+	if err := b.flush(); err != nil {
+		b.err = err
+		return b
+	}
+
 	rope, err := b.rope.Replace(start, end, text)
 	if err != nil {
-		return nil, err
+		b.err = err
+		return b
 	}
+
 	b.rope = rope
-	return b, nil
+	return b
 }
 
 // Build constructs the final Rope from all pending operations.
@@ -158,6 +225,9 @@ func (b *RopeBuilder) Replace(start, end int, text string) (*RopeBuilder, error)
 // The built rope is retained, so subsequent appends will add to it.
 // Returns an error if any operation failed.
 func (b *RopeBuilder) Build() (*Rope, error) {
+	if b.err != nil {
+		return nil, b.err
+	}
 	if err := b.flush(); err != nil {
 		return nil, err
 	}
@@ -170,6 +240,9 @@ func (b *RopeBuilder) Build() (*Rope, error) {
 
 // flush applies all pending insertions to the rope.
 func (b *RopeBuilder) flush() error {
+	if b.err != nil {
+		return b.err // Already have an error, don't process
+	}
 	if len(b.pending) == 0 {
 		return nil
 	}

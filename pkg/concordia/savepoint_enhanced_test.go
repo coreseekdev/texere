@@ -443,7 +443,7 @@ func TestEnhancedSavePointManager_ComplexWorkflow(t *testing.T) {
 		Description: "After adding World",
 	})
 
-	r = r.Insert(5, " Beautiful")
+	r, _ = r.Insert(5, " Beautiful")
 	id3, _ := sm.Create(r, 3, SavePointMetadata{
 		UserID:      "user1",
 		Tags:        []string{"checkpoint"},
