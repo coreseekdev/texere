@@ -43,10 +43,14 @@ func TestDocument_Interface_Clone(t *testing.T) {
 
 func TestDocument_Interface_UTF8(t *testing.T) {
 	doc := ot.NewStringDocument("Hello 世界")
-	// Length returns bytes, not characters
-	// "Hello 世界" = 5 + 1 + 2*3 = 12 bytes (每个中文字符3字节)
-	assert.Equal(t, 12, doc.Length())
+	// Length() returns UTF-16 code units (for JavaScript compatibility)
+	// "Hello 世界" = 6 + 2 = 8 UTF-16 code units
+	// Chinese characters (世, 界) are in the BMP range, so each counts as 1 UTF-16 code unit
+	assert.Equal(t, 8, doc.Length())
 	assert.Equal(t, "Hello 世界", doc.String())
+
+	// LengthChars() returns the actual character count (Unicode code points)
+	assert.Equal(t, 8, doc.LengthChars())
 }
 
 func TestDocument_Interface_Empty(t *testing.T) {

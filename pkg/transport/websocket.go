@@ -307,7 +307,7 @@ func (c *WebSocketConn) writePump() {
 					return
 				}
 			} else {
-				log.Printf("[WebSocket] %s: Sending message type=%s", c.id, msg.Type)
+				log.Printf("[WebSocket] %s: Sending message type=%v", c.id, msg.Type)
 				c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 				err := c.conn.WriteJSON(msg)
 				if err != nil {
